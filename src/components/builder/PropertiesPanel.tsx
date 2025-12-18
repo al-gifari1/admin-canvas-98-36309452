@@ -21,6 +21,8 @@ import { ContainerProperties } from './properties/ContainerProperties';
 import { GridProperties } from './properties/GridProperties';
 import { TabsProperties } from './properties/TabsProperties';
 import { AccordionProperties } from './properties/AccordionProperties';
+import { GalleryProperties } from './properties/GalleryProperties';
+import { SliderProperties } from './properties/SliderProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -92,6 +94,10 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <TabsProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'accordion':
         return <AccordionProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'gallery':
+        return <GalleryProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'slider':
+        return <SliderProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
