@@ -1,86 +1,99 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { DashboardLayout, StatCard } from '@/components/dashboard/DashboardLayout';
-import { CreateUserDialog } from '@/components/users/CreateUserDialog';
-import { UsersList } from '@/components/users/UsersList';
-import { Users, Building2, Code, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Globe, 
+  ShoppingCart, 
+  Settings,
+  LogOut,
+  Shield
+} from 'lucide-react';
+import { AdminOverview } from './admin/AdminOverview';
+import { DeveloperManagement } from './admin/DeveloperManagement';
+import { GlobalUsers } from './admin/GlobalUsers';
+import { GlobalOrders } from './admin/GlobalOrders';
+import { SystemSettings } from './admin/SystemSettings';
+import { ROLE_LABELS } from '@/types/roles';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    developers: 0,
-    shopOwners: 0,
-    shops: 0,
-  });
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const [usersRes, rolesRes, shopsRes] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('user_roles').select('role'),
-        supabase.from('shops').select('*', { count: 'exact', head: true }),
-      ]);
-
-      const developers = rolesRes.data?.filter(r => r.role === 'developer').length || 0;
-      const shopOwners = rolesRes.data?.filter(r => r.role === 'shop_owner').length || 0;
-
-      setStats({
-        totalUsers: usersRes.count || 0,
-        developers,
-        shopOwners,
-        shops: shopsRes.count || 0,
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+  const { user, role, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <DashboardLayout 
-      title="Super Admin Dashboard" 
-      description="Global system overview and management"
-    >
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          description="All registered users"
-          icon={<Users className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Developers"
-          value={stats.developers}
-          description="Active developers"
-          icon={<Code className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Shop Owners"
-          value={stats.shopOwners}
-          description="Registered shop owners"
-          icon={<ShieldCheck className="h-4 w-4" />}
-        />
-        <StatCard
-          title="Shops"
-          value={stats.shops}
-          description="Total shops"
-          icon={<Building2 className="h-4 w-4" />}
-        />
-      </div>
-
-      {/* User Management */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">User Management</h2>
-          <CreateUserDialog onUserCreated={fetchStats} />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="h-6 w-6 text-primary" />
+            <div>
+              <h1 className="text-lg font-semibold">Super Admin Dashboard</h1>
+              <p className="text-xs text-muted-foreground">Global platform management</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium">{user?.email}</p>
+              <p className="text-xs text-muted-foreground">{role && ROLE_LABELS[role]}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
-        <UsersList onUpdate={fetchStats} />
-      </div>
-    </DashboardLayout>
+      </header>
+
+      {/* Main Content */}
+      <main className="container py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4 hidden sm:block" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="developers" className="gap-2">
+              <Users className="h-4 w-4 hidden sm:block" />
+              Developers
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Globe className="h-4 w-4 hidden sm:block" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="gap-2">
+              <ShoppingCart className="h-4 w-4 hidden sm:block" />
+              Orders
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-2">
+              <Settings className="h-4 w-4 hidden sm:block" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <AdminOverview />
+          </TabsContent>
+
+          <TabsContent value="developers">
+            <DeveloperManagement />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <GlobalUsers />
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <GlobalOrders />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <SystemSettings />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
   );
 }
