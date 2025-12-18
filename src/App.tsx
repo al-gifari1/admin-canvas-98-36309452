@@ -13,6 +13,8 @@ import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 import NotAuthorized from "./pages/NotAuthorized";
 import LandingPagePreview from "./pages/LandingPagePreview";
+import PublicLandingPage from "./pages/PublicLandingPage";
+import ThankYou from "./pages/ThankYou";
 
 // Dashboards
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
@@ -34,11 +36,15 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/preview/:pageId" element={<LandingPagePreview />} />
+            <Route path="/thank-you" element={<ThankYou />} />
             <Route path="/auth" element={
               <AuthRedirect>
                 <Auth />
               </AuthRedirect>
             } />
+            
+            {/* Public Landing Page Route - /:shopSlug/:pageSlug */}
+            <Route path="/:shopSlug/:pageSlug" element={<PublicLandingPage />} />
             
             {/* Password Change (requires auth but no role check) */}
             <Route path="/change-password" element={

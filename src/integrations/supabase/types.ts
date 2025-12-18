@@ -228,41 +228,60 @@ export type Database = {
       orders: {
         Row: {
           amount: number
+          city: string | null
           created_at: string
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          delivery_address: string | null
           id: string
+          landing_page_id: string | null
           notes: string | null
+          quantity: number | null
           shop_id: string
           status: string
           updated_at: string
         }
         Insert: {
           amount?: number
+          city?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivery_address?: string | null
           id?: string
+          landing_page_id?: string | null
           notes?: string | null
+          quantity?: number | null
           shop_id: string
           status?: string
           updated_at?: string
         }
         Update: {
           amount?: number
+          city?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivery_address?: string | null
           id?: string
+          landing_page_id?: string | null
           notes?: string | null
+          quantity?: number | null
           shop_id?: string
           status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_shop_id_fkey"
             columns: ["shop_id"]
