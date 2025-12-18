@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ROLE_LABELS } from '@/types/roles';
 import {
@@ -10,7 +11,11 @@ import {
   BarChart3,
   LogOut,
   ChevronUp,
+  ChevronDown,
   Code2,
+  Plus,
+  List,
+  Layers,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -23,6 +28,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -32,12 +40,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { CreateLandingPageDialog } from './CreateLandingPageDialog';
 
 const menuItems = [
   { id: 'overview', title: 'Overview', icon: LayoutDashboard },
   { id: 'clients', title: 'Clients', icon: Users },
-  { id: 'landing-pages', title: 'Landing Pages', icon: FileText },
   { id: 'products', title: 'Products', icon: Package },
   { id: 'tracking', title: 'Tracking', icon: Target },
   { id: 'checkout', title: 'Checkout', icon: CreditCard },
@@ -53,90 +66,175 @@ export function DeveloperSidebar({ activeTab, onTabChange }: DeveloperSidebarPro
   const { user, role, signOut } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === 'collapsed';
+  const [landingPagesOpen, setLandingPagesOpen] = useState(
+    activeTab === 'landing-pages' || activeTab === 'section-library' || activeTab === 'builder'
+  );
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const getInitials = (email: string) => {
     return email?.slice(0, 2).toUpperCase() || 'DV';
   };
 
+  const isLandingPagesActive = activeTab === 'landing-pages' || activeTab === 'section-library' || activeTab === 'builder';
+
+  const handlePageCreated = (pageId: string) => {
+    onTabChange(`builder:${pageId}`);
+  };
+
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Code2 className="h-4 w-4" />
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Developer</span>
-              <span className="text-xs text-muted-foreground">Workspace</span>
+    <>
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="border-b border-sidebar-border">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Code2 className="h-4 w-4" />
             </div>
-          )}
-        </div>
-      </SidebarHeader>
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Developer</span>
+                <span className="text-xs text-muted-foreground">Workspace</span>
+              </div>
+            )}
+          </div>
+        </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onTabChange(item.id)}
-                    isActive={activeTab === item.id}
-                    tooltip={item.title}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* Regular menu items before Landing Pages */}
+                {menuItems.slice(0, 2).map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onTabChange(item.id)}
+                      isActive={activeTab === item.id}
+                      tooltip={item.title}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                {/* Landing Pages Collapsible Menu */}
+                <Collapsible
+                  open={landingPagesOpen}
+                  onOpenChange={setLandingPagesOpen}
+                  className="group/collapsible"
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                      {getInitials(user?.email || '')}
-                    </AvatarFallback>
-                  </Avatar>
-                  {!isCollapsed && (
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{user?.email}</span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {role && ROLE_LABELS[role]}
-                      </span>
-                    </div>
-                  )}
-                  {!isCollapsed && <ChevronUp className="ml-auto h-4 w-4" />}
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="top"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={isLandingPagesActive}
+                        tooltip="Landing Pages"
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Landing Pages</span>
+                        {!isCollapsed && (
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => setCreateDialogOpen(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span>Create New</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => onTabChange('landing-pages')}
+                            isActive={activeTab === 'landing-pages'}
+                          >
+                            <List className="h-4 w-4" />
+                            <span>Manage Pages</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => onTabChange('section-library')}
+                            isActive={activeTab === 'section-library'}
+                          >
+                            <Layers className="h-4 w-4" />
+                            <span>Section Library</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+
+                {/* Remaining menu items */}
+                {menuItems.slice(2).map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onTabChange(item.id)}
+                      isActive={activeTab === item.id}
+                      tooltip={item.title}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        {getInitials(user?.email || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!isCollapsed && (
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-semibold">{user?.email}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {role && ROLE_LABELS[role]}
+                        </span>
+                      </div>
+                    )}
+                    {!isCollapsed && <ChevronUp className="ml-auto h-4 w-4" />}
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                  side="top"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <CreateLandingPageDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onPageCreated={handlePageCreated}
+      />
+    </>
   );
 }

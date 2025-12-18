@@ -8,6 +8,8 @@ import { DeveloperProducts } from './developer/DeveloperProducts';
 import { DeveloperTracking } from './developer/DeveloperTracking';
 import { DeveloperCheckout } from './developer/DeveloperCheckout';
 import { DeveloperReports } from './developer/DeveloperReports';
+import { DeveloperSectionLibrary } from './developer/DeveloperSectionLibrary';
+import { DeveloperBuilder } from './developer/DeveloperBuilder';
 
 export default function DeveloperDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -16,7 +18,17 @@ export default function DeveloperDashboard() {
     // Trigger refresh when data changes
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   const renderContent = () => {
+    // Handle builder route with page ID
+    if (activeTab.startsWith('builder:')) {
+      const pageId = activeTab.replace('builder:', '');
+      return <DeveloperBuilder pageId={pageId} onBack={() => setActiveTab('landing-pages')} />;
+    }
+
     switch (activeTab) {
       case 'overview':
         return <DeveloperOverview />;
@@ -32,6 +44,8 @@ export default function DeveloperDashboard() {
         return <DeveloperCheckout />;
       case 'reports':
         return <DeveloperReports />;
+      case 'section-library':
+        return <DeveloperSectionLibrary />;
       default:
         return <DeveloperOverview />;
     }
@@ -40,7 +54,7 @@ export default function DeveloperDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DeveloperSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <DeveloperSidebar activeTab={activeTab} onTabChange={handleTabChange} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
