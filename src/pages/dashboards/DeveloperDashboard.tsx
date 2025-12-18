@@ -35,7 +35,7 @@ export default function DeveloperDashboard() {
       case 'clients':
         return <DeveloperClients onUpdate={handleUpdate} />;
       case 'landing-pages':
-        return <DeveloperLandingPages />;
+        return <DeveloperLandingPages onNavigate={handleTabChange} />;
       case 'products':
         return <DeveloperProducts />;
       case 'tracking':
