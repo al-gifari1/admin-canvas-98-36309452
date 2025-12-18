@@ -11,6 +11,7 @@ import {
   Shield,
   ChevronUp,
   Package,
+  FileText,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -39,6 +40,7 @@ const menuItems = [
   { id: 'developers', title: 'Developers', icon: Users },
   { id: 'users', title: 'Global Users', icon: Globe },
   { id: 'products', title: 'Products', icon: Package },
+  { id: 'landing-pages', title: 'Landing Pages', icon: FileText },
   { id: 'orders', title: 'Orders', icon: ShoppingCart },
   { id: 'settings', title: 'Settings', icon: Settings },
 ];
