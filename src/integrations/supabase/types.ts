@@ -561,8 +561,16 @@ export type Database = {
         Args: { _developer_id: string; _shop_owner_id: string }
         Returns: boolean
       }
+      is_shop_owner: {
+        Args: { _shop_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_shop_owner_of_user: {
         Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_shop_staff: {
+        Args: { _shop_id: string; _user_id: string }
         Returns: boolean
       }
       log_audit_event: {
