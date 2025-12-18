@@ -17,6 +17,10 @@ import { CountdownProperties } from './properties/CountdownProperties';
 import { PricingTableProperties } from './properties/PricingTableProperties';
 import { TestimonialsProperties } from './properties/TestimonialsProperties';
 import { ProgressBarProperties } from './properties/ProgressBarProperties';
+import { ContainerProperties } from './properties/ContainerProperties';
+import { GridProperties } from './properties/GridProperties';
+import { TabsProperties } from './properties/TabsProperties';
+import { AccordionProperties } from './properties/AccordionProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -80,6 +84,14 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <TestimonialsProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'progress-bar':
         return <ProgressBarProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'container':
+        return <ContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'grid':
+        return <GridProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'tabs':
+        return <TabsProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'accordion':
+        return <AccordionProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
