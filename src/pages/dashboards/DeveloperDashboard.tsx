@@ -9,8 +9,8 @@ import { DeveloperTracking } from './developer/DeveloperTracking';
 import { DeveloperCheckout } from './developer/DeveloperCheckout';
 import { DeveloperReports } from './developer/DeveloperReports';
 import { DeveloperSectionLibrary } from './developer/DeveloperSectionLibrary';
-import { DeveloperBuilder } from './developer/DeveloperBuilder';
 import { PageDashboard } from './developer/PageDashboard';
+import { PageBuilder } from '@/components/builder/PageBuilder';
 
 export default function DeveloperDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -23,13 +23,18 @@ export default function DeveloperDashboard() {
     setActiveTab(tab);
   };
 
-  const renderContent = () => {
-    // Handle builder route with page ID
-    if (activeTab.startsWith('builder:')) {
-      const pageId = activeTab.replace('builder:', '');
-      return <DeveloperBuilder pageId={pageId} onBack={() => setActiveTab('landing-pages')} />;
-    }
+  // Full-screen builder mode (no sidebar)
+  if (activeTab.startsWith('builder:')) {
+    const pageId = activeTab.replace('builder:', '');
+    return (
+      <PageBuilder 
+        pageId={pageId} 
+        onBack={() => setActiveTab(`page-dashboard:${pageId}`)} 
+      />
+    );
+  }
 
+  const renderContent = () => {
     // Handle page dashboard route with page ID
     if (activeTab.startsWith('page-dashboard:')) {
       const pageId = activeTab.replace('page-dashboard:', '');
