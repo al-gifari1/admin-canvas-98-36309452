@@ -15,6 +15,8 @@ import { IconProperties } from './properties/IconProperties';
 import { CheckoutFormProperties } from './properties/CheckoutFormProperties';
 import { CountdownProperties } from './properties/CountdownProperties';
 import { PricingTableProperties } from './properties/PricingTableProperties';
+import { TestimonialsProperties } from './properties/TestimonialsProperties';
+import { ProgressBarProperties } from './properties/ProgressBarProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -74,6 +76,10 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <CountdownProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'pricing-table':
         return <PricingTableProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'testimonials':
+        return <TestimonialsProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'progress-bar':
+        return <ProgressBarProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
