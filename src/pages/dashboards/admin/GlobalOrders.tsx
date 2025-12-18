@@ -29,8 +29,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, Eye, AlertTriangle, ShoppingCart } from 'lucide-react';
-import { format } from 'date-fns';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Eye, AlertTriangle, ShoppingCart, X } from 'lucide-react';
+import { format, subDays, isAfter, startOfDay } from 'date-fns';
 
 interface Order {
   id: string;
@@ -45,10 +52,21 @@ interface Order {
   created_at: string;
 }
 
+interface Shop {
+  id: string;
+  name: string;
+}
+
+const ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'completed', 'cancelled'];
+
 export function GlobalOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterShop, setFilterShop] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterDateRange, setFilterDateRange] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showEditWarning, setShowEditWarning] = useState(false);
 
@@ -58,27 +76,31 @@ export function GlobalOrders() {
 
   const fetchOrders = async () => {
     try {
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch orders and shops in parallel
+      const [ordersResult, shopsResult] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('shops')
+          .select('id, name')
+          .order('name')
+      ]);
 
-      if (!ordersData || ordersData.length === 0) {
+      if (shopsResult.data) {
+        setShops(shopsResult.data);
+      }
+
+      if (!ordersResult.data || ordersResult.data.length === 0) {
         setOrders([]);
         setLoading(false);
         return;
       }
 
-      // Fetch shop names
-      const shopIds = [...new Set(ordersData.map(o => o.shop_id))];
-      const { data: shops } = await supabase
-        .from('shops')
-        .select('id, name')
-        .in('id', shopIds);
+      const shopNameMap = new Map(shopsResult.data?.map(s => [s.id, s.name]) || []);
 
-      const shopNameMap = new Map(shops?.map(s => [s.id, s.name]) || []);
-
-      const orderList: Order[] = ordersData.map(o => ({
+      const orderList: Order[] = ordersResult.data.map(o => ({
         ...o,
         shop_name: shopNameMap.get(o.shop_id) || 'Unknown Shop',
       }));
@@ -91,11 +113,45 @@ export function GlobalOrders() {
     }
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const checkDateRange = (dateStr: string, range: string): boolean => {
+    if (range === 'all') return true;
+    
+    const date = new Date(dateStr);
+    const today = startOfDay(new Date());
+    
+    switch (range) {
+      case 'today':
+        return isAfter(date, today);
+      case '7days':
+        return isAfter(date, subDays(today, 7));
+      case '30days':
+        return isAfter(date, subDays(today, 30));
+      default:
+        return true;
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesShop = filterShop === 'all' || order.shop_id === filterShop;
+    const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
+    const matchesDate = checkDateRange(order.created_at, filterDateRange);
+    
+    return matchesSearch && matchesShop && matchesStatus && matchesDate;
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterShop('all');
+    setFilterStatus('all');
+    setFilterDateRange('all');
+  };
+
+  const hasActiveFilters = searchTerm || filterShop !== 'all' || filterStatus !== 'all' || filterDateRange !== 'all';
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
@@ -109,9 +165,9 @@ export function GlobalOrders() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('bn-BD', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'BDT',
     }).format(amount);
   };
 
@@ -136,8 +192,8 @@ export function GlobalOrders() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by customer, shop, or order ID..."
@@ -146,11 +202,62 @@ export function GlobalOrders() {
                 className="pl-10"
               />
             </div>
+            
+            <Select value={filterShop} onValueChange={setFilterShop}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Shops" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Shops</SelectItem>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                {ORDER_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status} className="capitalize">
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterDateRange} onValueChange={setFilterDateRange}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7days">Last 7 Days</SelectItem>
+                <SelectItem value="30days">Last 30 Days</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          <div className="text-sm text-muted-foreground mb-4">
+            Showing {filteredOrders.length} of {orders.length} orders
           </div>
 
           {filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? 'No orders found matching your search' : 'No orders yet'}
+              {hasActiveFilters ? 'No orders found matching your filters' : 'No orders yet'}
             </div>
           ) : (
             <Table>
