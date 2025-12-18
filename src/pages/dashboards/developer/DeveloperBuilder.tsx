@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Save, Eye, Settings } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Settings, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface LandingPage {
   id: string;
@@ -25,6 +26,7 @@ interface DeveloperBuilderProps {
 export function DeveloperBuilder({ pageId, onBack }: DeveloperBuilderProps) {
   const [page, setPage] = useState<LandingPage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function fetchPage() {
@@ -44,6 +46,31 @@ export function DeveloperBuilder({ pageId, onBack }: DeveloperBuilderProps) {
 
     fetchPage();
   }, [pageId]);
+
+  const handleSave = async () => {
+    if (!page) return;
+    
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('landing_pages')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', page.id);
+
+    setIsSaving(false);
+
+    if (error) {
+      toast({
+        title: 'Error saving page',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Page saved',
+        description: 'Your landing page has been saved successfully.',
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -87,7 +114,7 @@ export function DeveloperBuilder({ pageId, onBack }: DeveloperBuilderProps) {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              {page.shops?.name} • /{page.slug}
+              {page.shops?.name ? `${page.shops.name} • ` : ''}/{page.slug}
             </p>
           </div>
         </div>
@@ -100,8 +127,12 @@ export function DeveloperBuilder({ pageId, onBack }: DeveloperBuilderProps) {
             <Eye className="mr-2 h-4 w-4" />
             Preview
           </Button>
-          <Button size="sm">
-            <Save className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
             Save
           </Button>
         </div>
