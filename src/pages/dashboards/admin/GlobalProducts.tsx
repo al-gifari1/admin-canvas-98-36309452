@@ -19,7 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Eye, Package, Image as ImageIcon } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Eye, Package, Image as ImageIcon, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Product {
@@ -40,9 +47,13 @@ interface Product {
 
 export function GlobalProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [filterShop, setFilterShop] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
     fetchProducts();
@@ -57,20 +68,21 @@ export function GlobalProducts() {
 
       if (error) throw error;
 
+      // Fetch all shops for filter
+      const { data: shopsData } = await supabase
+        .from('shops')
+        .select('id, name')
+        .order('name');
+
+      setShops(shopsData || []);
+
       if (!productsData || productsData.length === 0) {
         setProducts([]);
         setLoading(false);
         return;
       }
 
-      // Fetch shop names
-      const shopIds = [...new Set(productsData.map(p => p.shop_id))];
-      const { data: shops } = await supabase
-        .from('shops')
-        .select('id, name')
-        .in('id', shopIds);
-
-      const shopNameMap = new Map(shops?.map(s => [s.id, s.name]) || []);
+      const shopNameMap = new Map(shopsData?.map(s => [s.id, s.name]) || []);
 
       const productList: Product[] = productsData.map(p => ({
         ...p,
@@ -86,11 +98,19 @@ export function GlobalProducts() {
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesShop = filterShop === 'all' || product.shop_id === filterShop;
+    const matchesType = filterType === 'all' || product.product_type === filterType;
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'active' ? product.is_active : !product.is_active);
+
+    return matchesSearch && matchesShop && matchesType && matchesStatus;
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -120,24 +140,83 @@ export function GlobalProducts() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, shop, or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          {/* Filters */}
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, shop, or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Badge variant="secondary">
+                {filteredProducts.length} products
+              </Badge>
             </div>
-            <Badge variant="secondary" className="ml-auto">
-              {filteredProducts.length} products
-            </Badge>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Select value={filterShop} onValueChange={setFilterShop}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by Shop" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Shops</SelectItem>
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Product Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="physical">Physical</SelectItem>
+                  <SelectItem value="digital">Digital</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(filterShop !== 'all' || filterType !== 'all' || filterStatus !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilterShop('all');
+                    setFilterType('all');
+                    setFilterStatus('all');
+                  }}
+                  className="h-9"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
 
           {filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? 'No products found matching your search' : 'No products yet'}
+              {searchTerm || filterShop !== 'all' || filterType !== 'all' || filterStatus !== 'all' 
+                ? 'No products found matching your filters' 
+                : 'No products yet'}
             </div>
           ) : (
             <Table>
