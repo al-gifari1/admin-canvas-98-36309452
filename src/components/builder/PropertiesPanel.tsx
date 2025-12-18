@@ -8,6 +8,10 @@ import { HeadingProperties } from './properties/HeadingProperties';
 import { ParagraphProperties } from './properties/ParagraphProperties';
 import { ImageProperties } from './properties/ImageProperties';
 import { ButtonProperties } from './properties/ButtonProperties';
+import { VideoProperties } from './properties/VideoProperties';
+import { DividerProperties } from './properties/DividerProperties';
+import { SpacerProperties } from './properties/SpacerProperties';
+import { IconProperties } from './properties/IconProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -53,6 +57,14 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <ImageProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'button':
         return <ButtonProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'video':
+        return <VideoProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'divider':
+        return <DividerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'spacer':
+        return <SpacerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'icon':
+        return <IconProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
