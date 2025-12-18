@@ -1,4 +1,5 @@
-import { Block } from '@/types/builder';
+import { CSSProperties } from 'react';
+import { Block, HeadingContent } from '@/types/builder';
 import { 
   icons, 
   LucideIcon, 
@@ -27,7 +28,144 @@ const alignmentClasses: Record<string, string> = {
   left: 'text-left',
   center: 'text-center',
   right: 'text-right',
+  justify: 'text-justify',
 };
+
+// Build heading inline styles from advanced properties
+function buildHeadingStyles(heading: HeadingContent): CSSProperties {
+  const styles: CSSProperties = {};
+  
+  // Typography
+  if (heading.style?.typography) {
+    const typo = heading.style.typography;
+    if (typo.fontFamily && typo.fontFamily !== 'inherit') {
+      styles.fontFamily = typo.fontFamily;
+    }
+    if (typo.fontSize?.desktop) {
+      styles.fontSize = `${typo.fontSize.desktop}${typo.fontSizeUnit || 'px'}`;
+    }
+    if (typo.fontWeight) {
+      styles.fontWeight = typo.fontWeight;
+    }
+    if (typo.textTransform && typo.textTransform !== 'none') {
+      styles.textTransform = typo.textTransform;
+    }
+    if (typo.fontStyle && typo.fontStyle !== 'normal') {
+      styles.fontStyle = typo.fontStyle;
+    }
+    if (typo.textDecoration && typo.textDecoration !== 'none') {
+      styles.textDecoration = typo.textDecoration;
+    }
+    if (typo.lineHeight?.value) {
+      styles.lineHeight = `${typo.lineHeight.value}${typo.lineHeight.unit || 'em'}`;
+    }
+    if (typo.letterSpacing) {
+      styles.letterSpacing = `${typo.letterSpacing}px`;
+    }
+  }
+  
+  // Text Color
+  if (heading.style?.textColor) {
+    const color = heading.style.textColor;
+    if (color.type === 'solid' && color.solid) {
+      styles.color = color.solid;
+    } else if (color.type === 'gradient' && color.gradient) {
+      const { angle = 90, stops } = color.gradient;
+      const gradientStops = stops.map(s => `${s.color} ${s.position}%`).join(', ');
+      styles.background = `linear-gradient(${angle}deg, ${gradientStops})`;
+      styles.WebkitBackgroundClip = 'text';
+      styles.WebkitTextFillColor = 'transparent';
+      styles.backgroundClip = 'text';
+    }
+  }
+  
+  // Text Shadow
+  if (heading.style?.textShadow) {
+    const shadow = heading.style.textShadow;
+    if (shadow.blur || shadow.horizontal || shadow.vertical) {
+      styles.textShadow = `${shadow.horizontal}px ${shadow.vertical}px ${shadow.blur}px ${shadow.color}`;
+    }
+  }
+  
+  // Blend Mode
+  if (heading.style?.blendMode && heading.style.blendMode !== 'normal') {
+    styles.mixBlendMode = heading.style.blendMode as CSSProperties['mixBlendMode'];
+  }
+  
+  return styles;
+}
+
+// Build wrapper styles from advanced properties
+function buildWrapperStyles(heading: HeadingContent): CSSProperties {
+  const styles: CSSProperties = {};
+  
+  if (!heading.advanced) return styles;
+  
+  const adv = heading.advanced;
+  
+  // Margin
+  if (adv.margin) {
+    styles.marginTop = `${adv.margin.top}px`;
+    styles.marginRight = `${adv.margin.right}px`;
+    styles.marginBottom = `${adv.margin.bottom}px`;
+    styles.marginLeft = `${adv.margin.left}px`;
+  }
+  
+  // Padding
+  if (adv.padding) {
+    styles.paddingTop = `${adv.padding.top}px`;
+    styles.paddingRight = `${adv.padding.right}px`;
+    styles.paddingBottom = `${adv.padding.bottom}px`;
+    styles.paddingLeft = `${adv.padding.left}px`;
+  }
+  
+  // Width
+  if (adv.width === 'full') {
+    styles.width = '100%';
+  } else if (adv.width === 'inline') {
+    styles.width = 'auto';
+    styles.display = 'inline-block';
+  } else if (adv.width === 'custom' && adv.customWidth) {
+    styles.width = `${adv.customWidth}%`;
+  }
+  
+  // Position
+  if (adv.position && adv.position !== 'static') {
+    styles.position = adv.position;
+    if (adv.zIndex !== undefined) {
+      styles.zIndex = adv.zIndex;
+    }
+  }
+  
+  // Opacity
+  if (adv.opacity !== undefined && adv.opacity < 100) {
+    styles.opacity = adv.opacity / 100;
+  }
+  
+  // Border
+  if (adv.border && adv.border.type !== 'none') {
+    styles.borderStyle = adv.border.type;
+    styles.borderWidth = `${adv.border.width}px`;
+    styles.borderColor = adv.border.color;
+    styles.borderRadius = `${adv.border.radius}px`;
+  }
+  
+  return styles;
+}
+
+// Build responsive visibility classes
+function buildResponsiveClasses(heading: HeadingContent): string {
+  if (!heading.advanced?.responsive) return '';
+  
+  const classes: string[] = [];
+  const resp = heading.advanced.responsive;
+  
+  if (resp.hideOnDesktop) classes.push('lg:hidden');
+  if (resp.hideOnTablet) classes.push('md:hidden lg:block');
+  if (resp.hideOnMobile) classes.push('max-md:hidden');
+  
+  return classes.join(' ');
+}
 
 interface WidgetRendererProps {
   block: Block;
@@ -36,13 +174,101 @@ interface WidgetRendererProps {
 export function WidgetRenderer({ block }: WidgetRendererProps) {
   switch (block.type) {
     case 'heading': {
-      const heading = block.content.heading || { text: 'Heading', level: 'h2', alignment: { desktop: 'left' } };
-      const text = heading.text || 'Heading';
-      const level = heading.level || 'h2';
-      const alignment = typeof heading.alignment === 'string' ? heading.alignment : (heading.alignment?.desktop || 'left');
-      const Tag = (level === 'div' || level === 'span' || level === 'p' ? level : level) as keyof JSX.IntrinsicElements;
-      const sizeClasses: Record<string, string> = { h1: 'text-4xl md:text-5xl font-bold', h2: 'text-3xl md:text-4xl font-bold', h3: 'text-2xl md:text-3xl font-semibold', h4: 'text-xl md:text-2xl font-semibold', h5: 'text-lg md:text-xl font-medium', h6: 'text-base md:text-lg font-medium', div: 'text-3xl font-bold', span: 'text-3xl font-bold', p: 'text-3xl font-bold' };
-      return <div className={`p-4 ${alignmentClasses[alignment] || 'text-left'}`}><Tag className={`${sizeClasses[level] || 'text-3xl font-bold'} text-foreground`}>{text}</Tag></div>;
+      const heading = block.content.heading as HeadingContent | undefined;
+      const defaultHeading: HeadingContent = {
+        text: 'Heading',
+        level: 'h2',
+        size: 'large',
+        alignment: { desktop: 'left' },
+        style: {
+          textColor: { type: 'solid' },
+          typography: {
+            fontFamily: 'inherit',
+            fontSize: { desktop: 36 },
+            fontSizeUnit: 'px',
+            fontWeight: 700,
+            textTransform: 'none',
+            fontStyle: 'normal',
+            textDecoration: 'none',
+            lineHeight: { value: 1.2, unit: 'em' },
+            letterSpacing: 0,
+          },
+          blendMode: 'normal',
+        },
+        advanced: {
+          margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+          width: 'default',
+          position: 'static',
+          opacity: 100,
+          border: { type: 'none', width: 0, color: '#000000', radius: 0 },
+          responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+        },
+      };
+      
+      const merged: HeadingContent = {
+        ...defaultHeading,
+        ...heading,
+        alignment: typeof heading?.alignment === 'string' 
+          ? { desktop: heading.alignment as 'left' | 'center' | 'right' | 'justify' }
+          : heading?.alignment || defaultHeading.alignment,
+        style: {
+          ...defaultHeading.style,
+          ...heading?.style,
+          typography: { ...defaultHeading.style.typography, ...heading?.style?.typography },
+          textColor: { ...defaultHeading.style.textColor, ...heading?.style?.textColor },
+        },
+        advanced: {
+          ...defaultHeading.advanced,
+          ...heading?.advanced,
+          margin: { ...defaultHeading.advanced.margin, ...heading?.advanced?.margin },
+          padding: { ...defaultHeading.advanced.padding, ...heading?.advanced?.padding },
+          border: { ...defaultHeading.advanced.border, ...heading?.advanced?.border },
+          responsive: { ...defaultHeading.advanced.responsive, ...heading?.advanced?.responsive },
+        },
+      };
+      
+      const text = merged.text;
+      const level = merged.level;
+      const alignment = merged.alignment.desktop;
+      const Tag = level as keyof JSX.IntrinsicElements;
+      
+      const headingStyles = buildHeadingStyles(merged);
+      const wrapperStyles = buildWrapperStyles(merged);
+      const responsiveClasses = buildResponsiveClasses(merged);
+      
+      // Link wrapper
+      const content = merged.link?.url ? (
+        <a 
+          href={merged.link.url} 
+          target={merged.link.openInNewTab ? '_blank' : undefined}
+          rel={merged.link.nofollow ? 'nofollow' : undefined}
+          className="hover:opacity-80 transition-opacity"
+        >
+          {text}
+        </a>
+      ) : text;
+      
+      // Custom attributes
+      const customProps: Record<string, string> = {};
+      if (merged.advanced?.cssId) customProps.id = merged.advanced.cssId;
+      
+      const cssClasses = merged.advanced?.cssClasses || '';
+      
+      return (
+        <div 
+          className={`${alignmentClasses[alignment] || 'text-left'} ${responsiveClasses}`}
+          style={wrapperStyles}
+        >
+          <Tag 
+            className={`text-foreground ${cssClasses}`}
+            style={headingStyles}
+            {...customProps}
+          >
+            {content}
+          </Tag>
+        </div>
+      );
     }
     case 'paragraph': {
       const { text, alignment } = block.content.paragraph || { text: 'Your text here', alignment: 'left' };
