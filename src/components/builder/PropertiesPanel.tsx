@@ -1,7 +1,13 @@
-import { X, Settings } from 'lucide-react';
-import { Block } from '@/types/builder';
+import { useState } from 'react';
+import { X, Settings, FileText, Palette } from 'lucide-react';
+import { Block, WIDGET_LIBRARY } from '@/types/builder';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HeadingProperties } from './properties/HeadingProperties';
+import { ParagraphProperties } from './properties/ParagraphProperties';
+import { ImageProperties } from './properties/ImageProperties';
+import { ButtonProperties } from './properties/ButtonProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -10,6 +16,8 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelProps) {
+  const [activeTab, setActiveTab] = useState<'content' | 'style'>('content');
+
   if (!block) {
     return (
       <div className="w-[300px] border-l border-border bg-card flex flex-col h-full shrink-0">
@@ -29,41 +37,76 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
     );
   }
 
+  const widgetInfo = WIDGET_LIBRARY.find((w) => w.type === block.type);
+
+  const handleUpdate = (content: Block['content']) => {
+    onUpdate(block.id, content);
+  };
+
+  const renderPropertyEditor = (tab: 'content' | 'style') => {
+    switch (block.type) {
+      case 'heading':
+        return <HeadingProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'paragraph':
+        return <ParagraphProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'image':
+        return <ImageProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'button':
+        return <ButtonProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      default:
+        return (
+          <div className="rounded-lg border border-dashed border-border p-6 text-center">
+            <Settings className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm font-medium text-foreground mb-1">
+              {tab === 'content' ? 'Content Editor' : 'Style Editor'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Coming soon for {widgetInfo?.label || block.type}
+            </p>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="w-[300px] border-l border-border bg-card flex flex-col h-full shrink-0">
       {/* Header */}
       <div className="p-4 border-b border-border flex items-center justify-between">
         <div>
           <h2 className="font-bold text-lg text-foreground">Properties</h2>
-          <p className="text-xs text-muted-foreground capitalize">{block.type.replace('-', ' ')}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {widgetInfo?.label || block.type.replace('-', ' ')}
+          </p>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Properties Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          <div className="rounded-lg border border-dashed border-border p-6 text-center">
-            <Settings className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground mb-1">
-              Property Editor
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Widget editing controls will appear here. Coming soon!
-            </p>
-          </div>
-
-          {/* Preview of current content */}
-          <div className="mt-4">
-            <h4 className="text-sm font-medium text-foreground mb-2">Current Content</h4>
-            <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-[200px] text-muted-foreground">
-              {JSON.stringify(block.content, null, 2)}
-            </pre>
-          </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'content' | 'style')} className="flex-1 flex flex-col">
+        <div className="px-4 pt-3 pb-0 border-b border-border">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="content" className="gap-2">
+              <FileText className="h-3.5 w-3.5" />
+              Content
+            </TabsTrigger>
+            <TabsTrigger value="style" className="gap-2">
+              <Palette className="h-3.5 w-3.5" />
+              Style
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </ScrollArea>
+
+        <ScrollArea className="flex-1">
+          <TabsContent value="content" className="p-4 mt-0">
+            {renderPropertyEditor('content')}
+          </TabsContent>
+          <TabsContent value="style" className="p-4 mt-0">
+            {renderPropertyEditor('style')}
+          </TabsContent>
+        </ScrollArea>
+      </Tabs>
     </div>
   );
 }
