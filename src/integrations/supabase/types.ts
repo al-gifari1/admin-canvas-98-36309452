@@ -152,7 +152,7 @@ export type Database = {
           is_published: boolean | null
           orders_count: number | null
           product_id: string | null
-          shop_id: string
+          shop_id: string | null
           slug: string
           title: string
           tracking_profile_id: string | null
@@ -168,7 +168,7 @@ export type Database = {
           is_published?: boolean | null
           orders_count?: number | null
           product_id?: string | null
-          shop_id: string
+          shop_id?: string | null
           slug: string
           title: string
           tracking_profile_id?: string | null
@@ -184,7 +184,7 @@ export type Database = {
           is_published?: boolean | null
           orders_count?: number | null
           product_id?: string | null
-          shop_id?: string
+          shop_id?: string | null
           slug?: string
           title?: string
           tracking_profile_id?: string | null

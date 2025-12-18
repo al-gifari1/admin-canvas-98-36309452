@@ -22,29 +22,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Page name is required').max(100, 'Page name must be less than 100 characters'),
   slug: z.string().min(1, 'URL slug is required').max(100, 'Slug must be less than 100 characters')
     .regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
-  shopId: z.string().min(1, 'Client selection is required'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-interface Shop {
-  id: string;
-  name: string;
-  owner_id: string;
-}
 
 interface CreateLandingPageDialogProps {
   open: boolean;
@@ -54,7 +40,6 @@ interface CreateLandingPageDialogProps {
 
 export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: CreateLandingPageDialogProps) {
   const { user } = useAuth();
-  const [shops, setShops] = useState<Shop[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<FormValues>({
@@ -62,7 +47,6 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
     defaultValues: {
       title: '',
       slug: '',
-      shopId: '',
     },
   });
 
@@ -76,28 +60,6 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
     }
   }, [watchTitle, form]);
 
-  // Fetch shops (clients) assigned to this developer
-  useEffect(() => {
-    async function fetchShops() {
-      if (!user?.id) return;
-
-      const { data, error } = await supabase
-        .from('shops')
-        .select('id, name, owner_id');
-
-      if (error) {
-        console.error('Error fetching shops:', error);
-        return;
-      }
-
-      setShops(data || []);
-    }
-
-    if (open) {
-      fetchShops();
-    }
-  }, [user?.id, open]);
-
   async function onSubmit(values: FormValues) {
     if (!user?.id) return;
 
@@ -108,7 +70,6 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
         .insert({
           title: values.title,
           slug: values.slug,
-          shop_id: values.shopId,
           created_by: user.id,
           is_published: false,
           content: {},
@@ -123,7 +84,6 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
       onOpenChange(false);
       onPageCreated(data.id);
     } catch (error: any) {
-      console.error('Error creating landing page:', error);
       toast.error(error.message || 'Failed to create landing page');
     } finally {
       setIsLoading(false);
@@ -136,7 +96,7 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
         <DialogHeader>
           <DialogTitle>Create New Landing Page</DialogTitle>
           <DialogDescription>
-            Create a new landing page for one of your clients.
+            Create a new landing page. You can assign it to a client later.
           </DialogDescription>
         </DialogHeader>
 
@@ -165,31 +125,6 @@ export function CreateLandingPageDialog({ open, onOpenChange, onPageCreated }: C
                   <FormControl>
                     <Input placeholder="summer-sale-campaign" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="shopId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Assign Client</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a client" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {shops.map((shop) => (
-                        <SelectItem key={shop.id} value={shop.id}>
-                          {shop.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
