@@ -386,6 +386,56 @@ export type Database = {
         }
         Relationships: []
       }
+      section_templates: {
+        Row: {
+          category: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          is_system_template: boolean
+          name: string
+          shop_id: string | null
+          thumbnail_url: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system_template?: boolean
+          name: string
+          shop_id?: string | null
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system_template?: boolean
+          name?: string
+          shop_id?: string | null
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_templates_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_assignments: {
         Row: {
           assigned_by: string
