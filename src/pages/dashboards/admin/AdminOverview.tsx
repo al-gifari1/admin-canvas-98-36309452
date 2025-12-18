@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Building2, Code, FileText, ShoppingCart, Activity } from 'lucide-react';
+import { Users, Building2, Code, FileText, ShoppingCart, Activity, Package, Store } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
@@ -11,6 +11,8 @@ interface Stats {
   totalShopOwners: number;
   totalLandingPages: number;
   totalOrders: number;
+  totalProducts: number;
+  totalShops: number;
 }
 
 interface AuditEntry {
@@ -29,6 +31,8 @@ export function AdminOverview() {
     totalShopOwners: 0,
     totalLandingPages: 0,
     totalOrders: 0,
+    totalProducts: 0,
+    totalShops: 0,
   });
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,11 +44,13 @@ export function AdminOverview() {
 
   const fetchStats = async () => {
     try {
-      const [rolesRes, pagesRes, ordersRes, profilesRes] = await Promise.all([
+      const [rolesRes, pagesRes, ordersRes, profilesRes, productsRes, shopsRes] = await Promise.all([
         supabase.from('user_roles').select('role, user_id'),
         supabase.from('landing_pages').select('*', { count: 'exact', head: true }),
         supabase.from('orders').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('user_id, status'),
+        supabase.from('products').select('*', { count: 'exact', head: true }),
+        supabase.from('shops').select('*', { count: 'exact', head: true }),
       ]);
 
       const developers = rolesRes.data?.filter(r => r.role === 'developer') || [];
@@ -62,6 +68,8 @@ export function AdminOverview() {
         totalShopOwners: shopOwners.length,
         totalLandingPages: pagesRes.count || 0,
         totalOrders: ordersRes.count || 0,
+        totalProducts: productsRes.count || 0,
+        totalShops: shopsRes.count || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -135,7 +143,7 @@ export function AdminOverview() {
   return (
     <div className="space-y-6">
       {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Developers"
           value={stats.totalDevelopers}
@@ -149,9 +157,24 @@ export function AdminOverview() {
           icon={Users}
         />
         <StatCard
+          title="Shops"
+          value={stats.totalShops}
+          subtitle="Total stores"
+          icon={Store}
+        />
+        <StatCard
+          title="Products"
+          value={stats.totalProducts}
+          subtitle="System-wide"
+          icon={Package}
+        />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard
           title="Landing Pages"
           value={stats.totalLandingPages}
-          subtitle="System-wide"
+          subtitle="All pages"
           icon={FileText}
         />
         <StatCard
