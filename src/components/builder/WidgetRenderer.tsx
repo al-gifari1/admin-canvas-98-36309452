@@ -1,5 +1,5 @@
 import { CSSProperties } from 'react';
-import { Block, HeadingContent } from '@/types/builder';
+import { Block, HeadingContent, ButtonContent } from '@/types/builder';
 import { 
   icons, 
   LucideIcon, 
@@ -25,10 +25,11 @@ function getIconByName(name: string): LucideIcon {
 
 // Alignment classes mapping (Tailwind can't use dynamic class names)
 const alignmentClasses: Record<string, string> = {
-  left: 'text-left',
-  center: 'text-center',
-  right: 'text-right',
+  left: 'text-left justify-start',
+  center: 'text-center justify-center',
+  right: 'text-right justify-end',
   justify: 'text-justify',
+  stretch: 'w-full',
 };
 
 // Build heading inline styles from advanced properties
@@ -275,10 +276,150 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
       return <div className={`p-4 ${alignmentClasses[alignment]}`}><p className="text-muted-foreground leading-relaxed">{text}</p></div>;
     }
     case 'button': {
-      const { text, variant, size, alignment } = block.content.button || { text: 'Button', variant: 'primary', size: 'md', alignment: 'left' };
-      const sizeClasses: Record<string, string> = { sm: 'px-4 py-2 text-sm', md: 'px-6 py-3', lg: 'px-8 py-4 text-lg' };
-      const variantClasses: Record<string, string> = { primary: 'bg-primary text-primary-foreground', secondary: 'bg-secondary text-secondary-foreground', outline: 'border border-border bg-transparent text-foreground' };
-      return <div className={`p-4 ${alignmentClasses[alignment]}`}><button className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-lg font-medium`}>{text}</button></div>;
+      const rawButton = block.content.button;
+      
+      // Handle legacy button format
+      const isLegacy = rawButton && !('link' in rawButton);
+      
+      const defaultButton: ButtonContent = {
+        text: 'Button',
+        link: { url: '#', openInNewTab: false, nofollow: false },
+        icon: { enabled: false, name: 'ArrowRight', position: 'right', spacing: 8 },
+        buttonType: 'button',
+        alignment: { desktop: 'left' },
+        style: {
+          typography: {
+            fontFamily: 'inherit',
+            fontSize: { desktop: 16 },
+            fontSizeUnit: 'px',
+            fontWeight: 500,
+            textTransform: 'none',
+            letterSpacing: 0,
+          },
+          normal: { textColor: '', backgroundColor: '', borderColor: '' },
+          hover: { textColor: '', backgroundColor: '', borderColor: '', transitionDuration: 300 },
+          padding: { top: 12, right: 24, bottom: 12, left: 24, linked: false },
+          borderRadius: 8,
+          borderWidth: 0,
+        },
+        advanced: {
+          margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          width: 'auto',
+          customWidthUnit: 'px',
+          responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+        },
+      };
+
+      // Merge button data with legacy support
+      const button: ButtonContent = isLegacy 
+        ? {
+            ...defaultButton,
+            text: (rawButton as any)?.text || 'Button',
+            link: { url: (rawButton as any)?.url || '#', openInNewTab: false, nofollow: false },
+          }
+        : { ...defaultButton, ...rawButton as ButtonContent };
+
+      const IconComponent = button.icon.enabled ? getIconByName(button.icon.name) : null;
+      
+      // Build inline styles
+      const buttonStyles: CSSProperties = {
+        fontFamily: button.style.typography.fontFamily !== 'inherit' ? button.style.typography.fontFamily : undefined,
+        fontSize: `${button.style.typography.fontSize.desktop}${button.style.typography.fontSizeUnit}`,
+        fontWeight: button.style.typography.fontWeight,
+        textTransform: button.style.typography.textTransform !== 'none' ? button.style.typography.textTransform : undefined,
+        letterSpacing: button.style.typography.letterSpacing ? `${button.style.typography.letterSpacing}px` : undefined,
+        color: button.style.normal.textColor || undefined,
+        backgroundColor: button.style.normal.backgroundColor || undefined,
+        borderColor: button.style.normal.borderColor || undefined,
+        borderWidth: button.style.borderWidth ? `${button.style.borderWidth}px` : undefined,
+        borderStyle: button.style.borderWidth ? 'solid' : undefined,
+        borderRadius: `${button.style.borderRadius}px`,
+        paddingTop: `${button.style.padding.top}px`,
+        paddingRight: `${button.style.padding.right}px`,
+        paddingBottom: `${button.style.padding.bottom}px`,
+        paddingLeft: `${button.style.padding.left}px`,
+        transitionProperty: 'color, background-color, border-color, box-shadow',
+        transitionDuration: `${button.style.hover.transitionDuration}ms`,
+        transitionTimingFunction: 'ease-in-out',
+      };
+
+      // Wrapper styles for margin and width
+      const wrapperStyles: CSSProperties = {
+        marginTop: `${button.advanced.margin.top}px`,
+        marginRight: `${button.advanced.margin.right}px`,
+        marginBottom: `${button.advanced.margin.bottom}px`,
+        marginLeft: `${button.advanced.margin.left}px`,
+      };
+
+      // Width handling
+      let buttonWidthClass = '';
+      if (button.advanced.width === 'full') {
+        buttonWidthClass = 'w-full';
+      } else if (button.advanced.width === 'custom' && button.advanced.customWidth) {
+        buttonStyles.width = `${button.advanced.customWidth}${button.advanced.customWidthUnit}`;
+      }
+
+      // Build hover CSS variables for use in inline hover styles
+      const hoverVars = {
+        '--hover-text': button.style.hover.textColor || button.style.normal.textColor || 'inherit',
+        '--hover-bg': button.style.hover.backgroundColor || button.style.normal.backgroundColor || 'inherit',
+        '--hover-border': button.style.hover.borderColor || button.style.normal.borderColor || 'transparent',
+      } as CSSProperties;
+
+      // Responsive visibility classes
+      const visibilityClasses: string[] = [];
+      if (button.advanced.responsive.hideOnDesktop) visibilityClasses.push('lg:hidden');
+      if (button.advanced.responsive.hideOnTablet) visibilityClasses.push('md:hidden lg:block');
+      if (button.advanced.responsive.hideOnMobile) visibilityClasses.push('max-md:hidden');
+
+      const alignment = button.alignment.desktop;
+      const alignClass = alignmentClasses[alignment] || 'justify-start';
+      
+      // Default styling if no custom colors
+      const defaultClasses = !button.style.normal.backgroundColor 
+        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+        : '';
+      
+      const hoverClasses = button.style.hover.backgroundColor || button.style.hover.textColor
+        ? 'hover:[color:var(--hover-text)] hover:[background-color:var(--hover-bg)] hover:[border-color:var(--hover-border)]'
+        : '';
+
+      const customProps: Record<string, string> = {};
+      if (button.advanced.cssId) customProps.id = button.advanced.cssId;
+
+      const buttonElement = (
+        <button
+          type={button.buttonType}
+          className={`inline-flex items-center font-medium ${buttonWidthClass} ${defaultClasses} ${hoverClasses} ${button.advanced.cssClasses || ''}`}
+          style={{ ...buttonStyles, ...hoverVars }}
+          {...customProps}
+        >
+          {IconComponent && button.icon.position === 'left' && (
+            <IconComponent className="h-4 w-4" style={{ marginRight: button.icon.spacing }} />
+          )}
+          {button.text}
+          {IconComponent && button.icon.position === 'right' && (
+            <IconComponent className="h-4 w-4" style={{ marginLeft: button.icon.spacing }} />
+          )}
+        </button>
+      );
+
+      return (
+        <div 
+          className={`p-4 flex ${alignClass} ${visibilityClasses.join(' ')}`}
+          style={wrapperStyles}
+        >
+          {button.link.url && button.link.url !== '#' ? (
+            <a 
+              href={button.link.url}
+              target={button.link.openInNewTab ? '_blank' : undefined}
+              rel={button.link.nofollow ? 'nofollow' : undefined}
+            >
+              {buttonElement}
+            </a>
+          ) : buttonElement}
+        </div>
+      );
     }
     case 'icon': {
       const { name, size } = block.content.icon || { name: 'Star', size: 48 };

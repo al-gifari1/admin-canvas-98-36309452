@@ -131,6 +131,95 @@ export interface HeadingContent {
   advanced: HeadingAdvanced;
 }
 
+// Button specific types
+export interface ButtonLink {
+  url: string;
+  openInNewTab: boolean;
+  nofollow: boolean;
+}
+
+export interface ButtonIcon {
+  enabled: boolean;
+  name: string;
+  position: 'left' | 'right';
+  spacing: number;
+}
+
+export interface ButtonAlignment {
+  desktop: 'left' | 'center' | 'right' | 'stretch';
+  tablet?: 'left' | 'center' | 'right' | 'stretch';
+  mobile?: 'left' | 'center' | 'right' | 'stretch';
+}
+
+export interface ButtonTypography {
+  fontFamily: string;
+  fontSize: ResponsiveValue;
+  fontSizeUnit: 'px' | 'rem';
+  fontWeight: number;
+  textTransform: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  letterSpacing: number;
+}
+
+export interface ButtonColors {
+  textColor: string;
+  backgroundColor: string;
+  borderColor: string;
+}
+
+export interface ButtonHoverColors {
+  textColor: string;
+  backgroundColor: string;
+  borderColor: string;
+  transitionDuration: number;
+}
+
+export interface ButtonStyle {
+  typography: ButtonTypography;
+  normal: ButtonColors;
+  hover: ButtonHoverColors;
+  padding: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  borderRadius: number;
+  borderWidth: number;
+  boxShadow?: {
+    horizontal: number;
+    vertical: number;
+    blur: number;
+    spread: number;
+    color: string;
+  };
+  hoverBoxShadow?: {
+    horizontal: number;
+    vertical: number;
+    blur: number;
+    spread: number;
+    color: string;
+  };
+}
+
+export interface ButtonAdvanced {
+  margin: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  width: 'auto' | 'full' | 'custom';
+  customWidth?: number;
+  customWidthUnit: 'px' | '%';
+  responsive: {
+    hideOnDesktop: boolean;
+    hideOnTablet: boolean;
+    hideOnMobile: boolean;
+  };
+  cssId?: string;
+  cssClasses?: string;
+}
+
+export interface ButtonContent {
+  text: string;
+  link: ButtonLink;
+  icon: ButtonIcon;
+  buttonType: 'button' | 'submit' | 'reset';
+  alignment: ButtonAlignment;
+  style: ButtonStyle;
+  advanced: ButtonAdvanced;
+}
+
 export interface WidgetContent {
   // Basic
   heading?: HeadingContent;
@@ -138,13 +227,7 @@ export interface WidgetContent {
     text: string;
     alignment: 'left' | 'center' | 'right';
   };
-  button?: {
-    text: string;
-    url: string;
-    variant: 'primary' | 'secondary' | 'outline';
-    size: 'sm' | 'md' | 'lg';
-    alignment: 'left' | 'center' | 'right';
-  };
+  button?: ButtonContent;
   icon?: {
     name: string;
     size: number;
@@ -332,7 +415,45 @@ export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
     } 
   },
   paragraph: { paragraph: { text: 'Enter your text content here. You can edit this in the properties panel.', alignment: 'left' } },
-  button: { button: { text: 'Click Me', url: '#', variant: 'primary', size: 'md', alignment: 'left' } },
+  button: { 
+    button: { 
+      text: 'Click Me', 
+      link: { url: '#', openInNewTab: false, nofollow: false },
+      icon: { enabled: false, name: 'ArrowRight', position: 'right', spacing: 8 },
+      buttonType: 'button',
+      alignment: { desktop: 'left' },
+      style: {
+        typography: {
+          fontFamily: 'inherit',
+          fontSize: { desktop: 16 },
+          fontSizeUnit: 'px',
+          fontWeight: 500,
+          textTransform: 'none',
+          letterSpacing: 0,
+        },
+        normal: {
+          textColor: '',
+          backgroundColor: '',
+          borderColor: '',
+        },
+        hover: {
+          textColor: '',
+          backgroundColor: '',
+          borderColor: '',
+          transitionDuration: 300,
+        },
+        padding: { top: 12, right: 24, bottom: 12, left: 24, linked: false },
+        borderRadius: 8,
+        borderWidth: 0,
+      },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        width: 'auto',
+        customWidthUnit: 'px',
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+    } 
+  },
   icon: { icon: { name: 'Star', size: 48, color: 'currentColor' } },
   divider: { divider: { style: 'solid', width: 100, color: '#e5e7eb' } },
   spacer: { spacer: { height: 40 } },

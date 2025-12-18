@@ -69,7 +69,7 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
       case 'image':
         return <ImageProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'button':
-        return <ButtonProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
+        return <ButtonProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'video':
         return <VideoProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'divider':
