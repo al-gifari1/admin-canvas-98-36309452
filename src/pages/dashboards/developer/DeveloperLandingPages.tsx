@@ -90,41 +90,38 @@ export function DeveloperLandingPages({ onNavigate }: DeveloperLandingPagesProps
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get shops the developer has access to
+      // Get pages created by this developer (includes unassigned pages)
+      const { data: myPages, error: myPagesError } = await supabase
+        .from('landing_pages')
+        .select('id, title, slug, is_published, views_count, orders_count, updated_at, shop_id')
+        .eq('created_by', user.id)
+        .order('updated_at', { ascending: false });
+
+      if (myPagesError) throw myPagesError;
+
+      // Get shops the developer has access to (for shop name lookup)
       const { data: assignments } = await supabase
         .from('developer_assignments')
         .select('shop_owner_id')
         .eq('developer_id', user.id);
 
-      if (!assignments || assignments.length === 0) return [];
-
-      const shopOwnerIds = assignments.map(a => a.shop_owner_id);
-
-      // Get shops for those owners
-      const { data: shops } = await supabase
-        .from('shops')
-        .select('id, name, owner_id')
-        .in('owner_id', shopOwnerIds);
-
-      if (!shops || shops.length === 0) return [];
-
-      const shopIds = shops.map(s => s.id);
-
-      // Get landing pages for those shops
-      const { data: pages, error } = await supabase
-        .from('landing_pages')
-        .select('id, title, slug, is_published, views_count, orders_count, updated_at, shop_id')
-        .in('shop_id', shopIds)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
+      let shops: { id: string; name: string; owner_id: string }[] = [];
+      
+      if (assignments && assignments.length > 0) {
+        const shopOwnerIds = assignments.map(a => a.shop_owner_id);
+        const { data: shopsData } = await supabase
+          .from('shops')
+          .select('id, name, owner_id')
+          .in('owner_id', shopOwnerIds);
+        shops = shopsData || [];
+      }
 
       // Map shop info to pages
-      const pagesWithShop: LandingPageWithShop[] = (pages || []).map(page => ({
+      const pagesWithShop: LandingPageWithShop[] = (myPages || []).map(page => ({
         ...page,
         views_count: page.views_count || 0,
         orders_count: page.orders_count || 0,
-        shop: shops.find(s => s.id === page.shop_id) || null
+        shop: page.shop_id ? shops.find(s => s.id === page.shop_id) || null : null
       }));
 
       return pagesWithShop;
@@ -384,7 +381,7 @@ export function DeveloperLandingPages({ onNavigate }: DeveloperLandingPagesProps
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{page.shop?.name || 'Unknown'}</Badge>
+                      <Badge variant="outline">{page.shop?.name || 'Unassigned'}</Badge>
                     </TableCell>
                     <TableCell>{getStatusBadge(page.is_published)}</TableCell>
                     <TableCell className="text-right">{page.views_count.toLocaleString()}</TableCell>
