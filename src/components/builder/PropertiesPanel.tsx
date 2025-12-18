@@ -12,6 +12,9 @@ import { VideoProperties } from './properties/VideoProperties';
 import { DividerProperties } from './properties/DividerProperties';
 import { SpacerProperties } from './properties/SpacerProperties';
 import { IconProperties } from './properties/IconProperties';
+import { CheckoutFormProperties } from './properties/CheckoutFormProperties';
+import { CountdownProperties } from './properties/CountdownProperties';
+import { PricingTableProperties } from './properties/PricingTableProperties';
 
 interface PropertiesPanelProps {
   block: Block | null;
@@ -65,6 +68,12 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <SpacerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'icon':
         return <IconProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'checkout-form':
+        return <CheckoutFormProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'countdown':
+        return <CountdownProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'pricing-table':
+        return <PricingTableProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
