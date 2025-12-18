@@ -10,6 +10,7 @@ import {
   LogOut,
   Shield,
   ChevronUp,
+  Package,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const menuItems = [
   { id: 'overview', title: 'Overview', icon: LayoutDashboard },
   { id: 'developers', title: 'Developers', icon: Users },
   { id: 'users', title: 'Global Users', icon: Globe },
+  { id: 'products', title: 'Products', icon: Package },
   { id: 'orders', title: 'Orders', icon: ShoppingCart },
   { id: 'settings', title: 'Settings', icon: Settings },
 ];
