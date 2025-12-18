@@ -120,10 +120,10 @@ export function HeadingProperties({ content, onUpdate, tab }: HeadingPropertiesP
             value={heading.size}
             onValueChange={(value) => updateHeading({ size: value as HeadingContent['size'] })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-background">
               <SelectValue placeholder="Select size" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover z-50">
               <SelectItem value="small">Small</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="large">Large</SelectItem>
@@ -140,10 +140,10 @@ export function HeadingProperties({ content, onUpdate, tab }: HeadingPropertiesP
             value={heading.level}
             onValueChange={(value) => updateHeading({ level: value as HeadingContent['level'] })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-background">
               <SelectValue placeholder="Select tag" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover z-50">
               <SelectItem value="h1">H1</SelectItem>
               <SelectItem value="h2">H2</SelectItem>
               <SelectItem value="h3">H3</SelectItem>
