@@ -3,16 +3,73 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Settings, FileText, Wrench, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Settings, FileText, Wrench, AlertCircle, Shield, Bell, Users, Package, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SystemSetting {
   id: string;
   key: string;
-  value: { enabled: boolean };
+  value: { enabled: boolean; limit?: number; hours?: number };
   description: string;
 }
+
+type SettingCategory = {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  keys: string[];
+};
+
+const SETTING_CATEGORIES: SettingCategory[] = [
+  {
+    title: 'Platform Control',
+    description: 'Core platform settings',
+    icon: Settings,
+    keys: ['maintenance_mode', 'new_registrations_enabled', 'public_landing_pages'],
+  },
+  {
+    title: 'Developer Limits',
+    description: 'Resource limits for developers',
+    icon: Users,
+    keys: ['unlimited_pages', 'max_shops_per_developer', 'max_products_per_shop'],
+  },
+  {
+    title: 'Order Settings',
+    description: 'Order processing configuration',
+    icon: ShoppingCart,
+    keys: ['auto_confirm_orders', 'allow_cod_payment', 'allow_online_payment'],
+  },
+  {
+    title: 'Security',
+    description: 'Security and authentication',
+    icon: Shield,
+    keys: ['force_password_change', 'session_timeout_hours'],
+  },
+  {
+    title: 'Notifications',
+    description: 'Notification preferences',
+    icon: Bell,
+    keys: ['email_notifications', 'order_notifications'],
+  },
+];
+
+const SETTING_TITLES: Record<string, string> = {
+  maintenance_mode: 'Maintenance Mode',
+  new_registrations_enabled: 'Allow New Registrations',
+  public_landing_pages: 'Public Landing Pages',
+  unlimited_pages: 'Unlimited Pages for Developers',
+  max_shops_per_developer: 'Max Shops per Developer',
+  max_products_per_shop: 'Max Products per Shop',
+  auto_confirm_orders: 'Auto Confirm Orders',
+  allow_cod_payment: 'Allow COD Payment',
+  allow_online_payment: 'Allow Online Payment',
+  force_password_change: 'Force Password Change',
+  session_timeout_hours: 'Session Timeout',
+  email_notifications: 'Email Notifications',
+  order_notifications: 'Order Notifications',
+};
 
 export function SystemSettings() {
   const [settings, setSettings] = useState<SystemSetting[]>([]);
@@ -32,7 +89,7 @@ export function SystemSettings() {
       if (error) throw error;
       setSettings((data || []).map(item => ({
         ...item,
-        value: item.value as { enabled: boolean },
+        value: item.value as { enabled: boolean; limit?: number; hours?: number },
         description: item.description || '',
       })));
     } catch (error) {
@@ -47,7 +104,7 @@ export function SystemSettings() {
     setUpdating(setting.key);
     try {
       const { data: session } = await supabase.auth.getSession();
-      const newValue = { enabled: !setting.value.enabled };
+      const newValue = { ...setting.value, enabled: !setting.value.enabled };
 
       const { error } = await supabase
         .from('system_settings')
@@ -65,7 +122,7 @@ export function SystemSettings() {
         )
       );
       
-      toast.success(`${setting.description} ${newValue.enabled ? 'enabled' : 'disabled'}`);
+      toast.success(`${SETTING_TITLES[setting.key] || setting.key} ${newValue.enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
       console.error('Error updating setting:', error);
       toast.error('Failed to update setting');
@@ -74,26 +131,39 @@ export function SystemSettings() {
     }
   };
 
-  const getSettingIcon = (key: string) => {
-    switch (key) {
-      case 'unlimited_pages':
-        return FileText;
-      case 'maintenance_mode':
-        return Wrench;
-      default:
-        return Settings;
+  const handleLimitChange = async (setting: SystemSetting, field: 'limit' | 'hours', value: number) => {
+    setUpdating(setting.key);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const newValue = { ...setting.value, [field]: value };
+
+      const { error } = await supabase
+        .from('system_settings')
+        .update({ 
+          value: newValue,
+          updated_by: session.session?.user.id 
+        })
+        .eq('key', setting.key);
+
+      if (error) throw error;
+
+      setSettings(prev => 
+        prev.map(s => 
+          s.key === setting.key ? { ...s, value: newValue } : s
+        )
+      );
+      
+      toast.success(`${SETTING_TITLES[setting.key] || setting.key} updated`);
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      toast.error('Failed to update setting');
+    } finally {
+      setUpdating(null);
     }
   };
 
-  const getSettingTitle = (key: string) => {
-    switch (key) {
-      case 'unlimited_pages':
-        return 'Allow Developers to create unlimited pages';
-      case 'maintenance_mode':
-        return 'System Maintenance Mode';
-      default:
-        return key;
-    }
+  const getSettingsByCategory = (keys: string[]) => {
+    return settings.filter(s => keys.includes(s.key));
   };
 
   if (loading) {
@@ -117,39 +187,59 @@ export function SystemSettings() {
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <CardTitle>System Settings</CardTitle>
-              <CardDescription>Global platform configurations</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {settings.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No settings configured</p>
-          ) : (
-            settings.map((setting) => {
-              const Icon = getSettingIcon(setting.key);
-              return (
+      {SETTING_CATEGORIES.map((category) => {
+        const categorySettings = getSettingsByCategory(category.keys);
+        if (categorySettings.length === 0) return null;
+
+        const Icon = category.icon;
+        return (
+          <Card key={category.title}>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <CardTitle className="text-lg">{category.title}</CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {categorySettings.map((setting) => (
                 <div
                   key={setting.id}
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-lg bg-muted">
-                      <Icon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <Label htmlFor={setting.key} className="text-base font-medium">
-                        {getSettingTitle(setting.key)}
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        {setting.description}
-                      </p>
-                    </div>
+                  <div className="flex-1">
+                    <Label htmlFor={setting.key} className="text-base font-medium">
+                      {SETTING_TITLES[setting.key] || setting.key}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {setting.description}
+                    </p>
+                    {setting.value.limit !== undefined && setting.value.enabled && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Label className="text-sm">Limit:</Label>
+                        <Input
+                          type="number"
+                          value={setting.value.limit}
+                          onChange={(e) => handleLimitChange(setting, 'limit', parseInt(e.target.value) || 0)}
+                          className="w-24 h-8"
+                          min={1}
+                        />
+                      </div>
+                    )}
+                    {setting.value.hours !== undefined && setting.value.enabled && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Label className="text-sm">Hours:</Label>
+                        <Input
+                          type="number"
+                          value={setting.value.hours}
+                          onChange={(e) => handleLimitChange(setting, 'hours', parseInt(e.target.value) || 1)}
+                          className="w-24 h-8"
+                          min={1}
+                        />
+                      </div>
+                    )}
                   </div>
                   <Switch
                     id={setting.key}
@@ -158,42 +248,11 @@ export function SystemSettings() {
                     disabled={updating === setting.key}
                   />
                 </div>
-              );
-            })
-          )}
-
-          {/* Placeholder for future settings */}
-          <div className="border-t pt-6 mt-6">
-            <h3 className="font-medium mb-4 text-muted-foreground">Coming Soon</h3>
-            <div className="space-y-4 opacity-50">
-              <div className="flex items-center justify-between p-4 border rounded-lg border-dashed">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Settings className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-muted-foreground">Configure system-wide email settings</p>
-                  </div>
-                </div>
-                <Switch disabled />
-              </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg border-dashed">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Settings className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium">API Rate Limiting</p>
-                    <p className="text-sm text-muted-foreground">Control API usage limits per tenant</p>
-                  </div>
-                </div>
-                <Switch disabled />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
