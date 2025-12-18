@@ -22,6 +22,13 @@ function getIconByName(name: string): LucideIcon {
   return icon || HelpCircle;
 }
 
+// Alignment classes mapping (Tailwind can't use dynamic class names)
+const alignmentClasses: Record<string, string> = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+};
+
 interface WidgetRendererProps {
   block: Block;
 }
@@ -32,17 +39,17 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
       const { text, level, alignment } = block.content.heading || { text: 'Heading', level: 'h2', alignment: 'left' };
       const Tag = level as keyof JSX.IntrinsicElements;
       const sizeClasses: Record<string, string> = { h1: 'text-4xl md:text-5xl font-bold', h2: 'text-3xl md:text-4xl font-bold', h3: 'text-2xl md:text-3xl font-semibold', h4: 'text-xl md:text-2xl font-semibold', h5: 'text-lg md:text-xl font-medium', h6: 'text-base md:text-lg font-medium' };
-      return <div className={`p-4 text-${alignment}`}><Tag className={`${sizeClasses[level]} text-foreground`}>{text}</Tag></div>;
+      return <div className={`p-4 ${alignmentClasses[alignment]}`}><Tag className={`${sizeClasses[level]} text-foreground`}>{text}</Tag></div>;
     }
     case 'paragraph': {
       const { text, alignment } = block.content.paragraph || { text: 'Your text here', alignment: 'left' };
-      return <div className={`p-4 text-${alignment}`}><p className="text-muted-foreground leading-relaxed">{text}</p></div>;
+      return <div className={`p-4 ${alignmentClasses[alignment]}`}><p className="text-muted-foreground leading-relaxed">{text}</p></div>;
     }
     case 'button': {
       const { text, variant, size, alignment } = block.content.button || { text: 'Button', variant: 'primary', size: 'md', alignment: 'left' };
       const sizeClasses: Record<string, string> = { sm: 'px-4 py-2 text-sm', md: 'px-6 py-3', lg: 'px-8 py-4 text-lg' };
       const variantClasses: Record<string, string> = { primary: 'bg-primary text-primary-foreground', secondary: 'bg-secondary text-secondary-foreground', outline: 'border border-border bg-transparent text-foreground' };
-      return <div className={`p-4 text-${alignment}`}><button className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-lg font-medium`}>{text}</button></div>;
+      return <div className={`p-4 ${alignmentClasses[alignment]}`}><button className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-lg font-medium`}>{text}</button></div>;
     }
     case 'icon': {
       const { name, size } = block.content.icon || { name: 'Star', size: 48 };
@@ -58,8 +65,9 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
       return <div style={{ height }} />;
     }
     case 'image': {
-      const { url, alt, alignment } = block.content.image || { url: '', alt: 'Image', alignment: 'center' };
-      return <div className={`p-4 text-${alignment}`}>{url ? <img src={url} alt={alt} className="max-w-full h-auto rounded-lg inline-block" /> : <div className="aspect-video bg-muted rounded-lg flex items-center justify-center max-w-2xl mx-auto"><ImageIcon className="h-12 w-12 text-muted-foreground" /></div>}</div>;
+      const { url, alt, alignment, width } = block.content.image || { url: '', alt: 'Image', alignment: 'center', width: 'full' };
+      const widthClasses = width === 'full' ? 'w-full' : 'max-w-full';
+      return <div className={`p-4 ${alignmentClasses[alignment]}`}>{url ? <img src={url} alt={alt} className={`${widthClasses} h-auto rounded-lg inline-block`} /> : <div className="aspect-video bg-muted rounded-lg flex items-center justify-center max-w-2xl mx-auto"><ImageIcon className="h-12 w-12 text-muted-foreground" /></div>}</div>;
     }
     case 'video': {
       const { url } = block.content.video || { url: '' };
