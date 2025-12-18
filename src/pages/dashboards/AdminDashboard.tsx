@@ -5,6 +5,7 @@ import { AdminOverview } from './admin/AdminOverview';
 import { DeveloperManagement } from './admin/DeveloperManagement';
 import { GlobalUsers } from './admin/GlobalUsers';
 import { GlobalProducts } from './admin/GlobalProducts';
+import { GlobalLandingPages } from './admin/GlobalLandingPages';
 import { GlobalOrders } from './admin/GlobalOrders';
 import { SystemSettings } from './admin/SystemSettings';
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +21,7 @@ const tabTitles: Record<string, string> = {
   developers: 'Developer Management',
   users: 'Global Users',
   products: 'Products',
+  'landing-pages': 'Landing Pages',
   orders: 'Orders',
   settings: 'System Settings',
 };
@@ -37,6 +39,8 @@ export default function AdminDashboard() {
         return <GlobalUsers />;
       case 'products':
         return <GlobalProducts />;
+      case 'landing-pages':
+        return <GlobalLandingPages />;
       case 'orders':
         return <GlobalOrders />;
       case 'settings':
