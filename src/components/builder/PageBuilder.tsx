@@ -11,11 +11,13 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { ArrowLeft, Save, Eye, Monitor, Smartphone, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Monitor, Smartphone, Loader2, Undo2, Redo2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
+import { useHistory } from '@/hooks/useHistory';
 import { WidgetLibrary } from '@/components/builder/WidgetLibrary';
 import { BuilderCanvas } from '@/components/builder/BuilderCanvas';
 import { PropertiesPanel } from '@/components/builder/PropertiesPanel';
@@ -36,12 +38,34 @@ interface LandingPage {
 
 export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
   const [page, setPage] = useState<LandingPage | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
+  const { state: blocks, set: setBlocks, undo, redo, canUndo, canRedo, reset: resetBlocks } = useHistory<Block[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'mobile' | 'desktop'>('desktop');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          redo();
+        } else {
+          e.preventDefault();
+          undo();
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -81,7 +105,7 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
         setPage(pageData);
         // Load blocks from content
         if (pageData.content?.blocks) {
-          setBlocks(pageData.content.blocks);
+          resetBlocks(pageData.content.blocks);
         }
       }
       setIsLoading(false);
@@ -212,6 +236,40 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Undo/Redo buttons */}
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className="h-8 w-8 p-0"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={redo}
+                  disabled={!canRedo}
+                  className="h-8 w-8 p-0"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="h-6 w-px bg-border" />
+
           {/* View mode toggle */}
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <Button
