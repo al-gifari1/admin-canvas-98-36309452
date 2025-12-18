@@ -36,10 +36,13 @@ interface WidgetRendererProps {
 export function WidgetRenderer({ block }: WidgetRendererProps) {
   switch (block.type) {
     case 'heading': {
-      const { text, level, alignment } = block.content.heading || { text: 'Heading', level: 'h2', alignment: 'left' };
-      const Tag = level as keyof JSX.IntrinsicElements;
-      const sizeClasses: Record<string, string> = { h1: 'text-4xl md:text-5xl font-bold', h2: 'text-3xl md:text-4xl font-bold', h3: 'text-2xl md:text-3xl font-semibold', h4: 'text-xl md:text-2xl font-semibold', h5: 'text-lg md:text-xl font-medium', h6: 'text-base md:text-lg font-medium' };
-      return <div className={`p-4 ${alignmentClasses[alignment]}`}><Tag className={`${sizeClasses[level]} text-foreground`}>{text}</Tag></div>;
+      const heading = block.content.heading || { text: 'Heading', level: 'h2', alignment: { desktop: 'left' } };
+      const text = heading.text || 'Heading';
+      const level = heading.level || 'h2';
+      const alignment = typeof heading.alignment === 'string' ? heading.alignment : (heading.alignment?.desktop || 'left');
+      const Tag = (level === 'div' || level === 'span' || level === 'p' ? level : level) as keyof JSX.IntrinsicElements;
+      const sizeClasses: Record<string, string> = { h1: 'text-4xl md:text-5xl font-bold', h2: 'text-3xl md:text-4xl font-bold', h3: 'text-2xl md:text-3xl font-semibold', h4: 'text-xl md:text-2xl font-semibold', h5: 'text-lg md:text-xl font-medium', h6: 'text-base md:text-lg font-medium', div: 'text-3xl font-bold', span: 'text-3xl font-bold', p: 'text-3xl font-bold' };
+      return <div className={`p-4 ${alignmentClasses[alignment] || 'text-left'}`}><Tag className={`${sizeClasses[level] || 'text-3xl font-bold'} text-foreground`}>{text}</Tag></div>;
     }
     case 'paragraph': {
       const { text, alignment } = block.content.paragraph || { text: 'Your text here', alignment: 'left' };
