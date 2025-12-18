@@ -16,10 +16,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { BuilderLibrary } from '@/components/builder/BuilderLibrary';
+import { WidgetLibrary } from '@/components/builder/WidgetLibrary';
 import { BuilderCanvas } from '@/components/builder/BuilderCanvas';
-import { BuilderEditor } from '@/components/builder/BuilderEditor';
-import { Block, BlockType, PageContent, DEFAULT_BLOCK_CONTENT } from '@/types/builder';
+import { PropertiesPanel } from '@/components/builder/PropertiesPanel';
+import { Block, WidgetType, PageContent, DEFAULT_WIDGET_CONTENT } from '@/types/builder';
 
 interface PageBuilderProps {
   pageId: string;
@@ -105,11 +105,11 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
     // Check if dragging from library
     const activeData = active.data.current;
     if (activeData?.fromLibrary) {
-      const blockType = activeData.type as BlockType;
+      const widgetType = activeData.type as WidgetType;
       const newBlock: Block = {
         id: generateBlockId(),
-        type: blockType,
-        content: { ...DEFAULT_BLOCK_CONTENT[blockType] },
+        type: widgetType,
+        content: { ...DEFAULT_WIDGET_CONTENT[widgetType] },
       };
       setBlocks((prev) => [...prev, newBlock]);
       setSelectedBlockId(newBlock.id);
@@ -257,8 +257,8 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {/* Zone A: Library */}
-          <BuilderLibrary />
+          {/* Zone A: Widget Library */}
+          <WidgetLibrary />
 
           {/* Zone B: Canvas */}
           <BuilderCanvas
@@ -269,8 +269,8 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
             viewMode={viewMode}
           />
 
-          {/* Zone C: Editor */}
-          <BuilderEditor
+          {/* Zone C: Properties Panel */}
+          <PropertiesPanel
             block={selectedBlock}
             onClose={() => setSelectedBlockId(null)}
             onUpdate={handleUpdateBlock}
