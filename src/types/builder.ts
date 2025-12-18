@@ -42,13 +42,98 @@ export interface WidgetDefinition {
   category: WidgetCategory;
 }
 
+// Responsive value type
+export interface ResponsiveValue {
+  desktop: number;
+  tablet?: number;
+  mobile?: number;
+}
+
+// Heading specific types
+export interface HeadingLink {
+  url: string;
+  openInNewTab: boolean;
+  nofollow: boolean;
+}
+
+export interface HeadingAlignment {
+  desktop: 'left' | 'center' | 'right' | 'justify';
+  tablet?: 'left' | 'center' | 'right' | 'justify';
+  mobile?: 'left' | 'center' | 'right' | 'justify';
+}
+
+export interface HeadingTextColor {
+  type: 'solid' | 'gradient';
+  solid?: string;
+  gradient?: {
+    type: 'linear' | 'radial';
+    angle?: number;
+    stops: { color: string; position: number }[];
+  };
+}
+
+export interface HeadingTypography {
+  fontFamily: string;
+  fontSize: ResponsiveValue;
+  fontSizeUnit: 'px' | 'rem' | 'vw';
+  fontWeight: number;
+  textTransform: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  fontStyle: 'normal' | 'italic' | 'oblique';
+  textDecoration: 'none' | 'underline' | 'line-through' | 'overline';
+  lineHeight: { value: number; unit: 'em' | 'px' };
+  letterSpacing: number;
+}
+
+export interface HeadingTextShadow {
+  horizontal: number;
+  vertical: number;
+  blur: number;
+  color: string;
+}
+
+export interface HeadingStyle {
+  textColor: HeadingTextColor;
+  typography: HeadingTypography;
+  textShadow?: HeadingTextShadow;
+  blendMode: string;
+}
+
+export interface HeadingAdvanced {
+  margin: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  padding: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  width: 'default' | 'full' | 'inline' | 'custom';
+  customWidth?: number;
+  position: 'static' | 'relative' | 'absolute' | 'fixed';
+  zIndex?: number;
+  opacity: number;
+  border: {
+    type: 'none' | 'solid' | 'double' | 'dotted' | 'dashed';
+    width: number;
+    color: string;
+    radius: number;
+  };
+  responsive: {
+    hideOnDesktop: boolean;
+    hideOnTablet: boolean;
+    hideOnMobile: boolean;
+  };
+  cssId?: string;
+  cssClasses?: string;
+}
+
+export interface HeadingContent {
+  text: string;
+  link?: HeadingLink;
+  size: 'small' | 'medium' | 'large' | 'xl' | 'xxl';
+  level: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div' | 'span' | 'p';
+  alignment: HeadingAlignment;
+  style: HeadingStyle;
+  advanced: HeadingAdvanced;
+}
+
 export interface WidgetContent {
   // Basic
-  heading?: {
-    text: string;
-    level: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-    alignment: 'left' | 'center' | 'right';
-  };
+  heading?: HeadingContent;
   paragraph?: {
     text: string;
     alignment: 'left' | 'center' | 'right';
@@ -214,7 +299,38 @@ export const WIDGET_LIBRARY: WidgetDefinition[] = [
 
 export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
   // Basic
-  heading: { heading: { text: 'Your Heading Here', level: 'h2', alignment: 'left' } },
+  heading: { 
+    heading: { 
+      text: 'Your Heading Here', 
+      level: 'h2',
+      size: 'large',
+      alignment: { desktop: 'left' },
+      style: {
+        textColor: { type: 'solid', solid: '' },
+        typography: {
+          fontFamily: 'inherit',
+          fontSize: { desktop: 36 },
+          fontSizeUnit: 'px',
+          fontWeight: 700,
+          textTransform: 'none',
+          fontStyle: 'normal',
+          textDecoration: 'none',
+          lineHeight: { value: 1.2, unit: 'em' },
+          letterSpacing: 0,
+        },
+        blendMode: 'normal',
+      },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+        width: 'default',
+        position: 'static',
+        opacity: 100,
+        border: { type: 'none', width: 0, color: '#000000', radius: 0 },
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+    } 
+  },
   paragraph: { paragraph: { text: 'Enter your text content here. You can edit this in the properties panel.', alignment: 'left' } },
   button: { button: { text: 'Click Me', url: '#', variant: 'primary', size: 'md', alignment: 'left' } },
   icon: { icon: { name: 'Star', size: 48, color: 'currentColor' } },
