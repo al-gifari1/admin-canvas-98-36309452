@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_versions: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          data: Json
+          entity_id: string
+          entity_type: string
+          id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          data: Json
+          entity_id: string
+          entity_type: string
+          id?: string
+          version: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          data?: Json
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -47,6 +77,50 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_profiles: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          enabled_fields: Json | null
+          id: string
+          name: string
+          payment_methods: Json | null
+          shop_id: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          enabled_fields?: Json | null
+          id?: string
+          name: string
+          payment_methods?: Json | null
+          shop_id: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          enabled_fields?: Json | null
+          id?: string
+          name?: string
+          payment_methods?: Json | null
+          shop_id?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_profiles_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       developer_assignments: {
         Row: {
           created_at: string | null
@@ -70,44 +144,80 @@ export type Database = {
       }
       landing_pages: {
         Row: {
+          checkout_profile_id: string | null
           content: Json | null
           created_at: string
           created_by: string
           id: string
           is_published: boolean | null
+          orders_count: number | null
+          product_id: string | null
           shop_id: string
           slug: string
           title: string
+          tracking_profile_id: string | null
           updated_at: string
+          views_count: number | null
         }
         Insert: {
+          checkout_profile_id?: string | null
           content?: Json | null
           created_at?: string
           created_by: string
           id?: string
           is_published?: boolean | null
+          orders_count?: number | null
+          product_id?: string | null
           shop_id: string
           slug: string
           title: string
+          tracking_profile_id?: string | null
           updated_at?: string
+          views_count?: number | null
         }
         Update: {
+          checkout_profile_id?: string | null
           content?: Json | null
           created_at?: string
           created_by?: string
           id?: string
           is_published?: boolean | null
+          orders_count?: number | null
+          product_id?: string | null
           shop_id?: string
           slug?: string
           title?: string
+          tracking_profile_id?: string | null
           updated_at?: string
+          views_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "landing_pages_checkout_profile_id_fkey"
+            columns: ["checkout_profile_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_pages_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "landing_pages_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "landing_pages_tracking_profile_id_fkey"
+            columns: ["tracking_profile_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -152,6 +262,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "orders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          download_url: string | null
+          gallery_images: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          product_type: string
+          shop_id: string
+          updated_at: string | null
+          version: number | null
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          download_url?: string | null
+          gallery_images?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number
+          product_type?: string
+          shop_id: string
+          updated_at?: string | null
+          version?: number | null
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          download_url?: string | null
+          gallery_images?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          product_type?: string
+          shop_id?: string
+          updated_at?: string | null
+          version?: number | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_shop_id_fkey"
             columns: ["shop_id"]
             isOneToOne: false
             referencedRelation: "shops"
@@ -235,6 +404,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          slug: string | null
           updated_at: string | null
         }
         Insert: {
@@ -244,6 +414,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          slug?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -253,6 +424,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          slug?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -283,6 +455,62 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      tracking_profiles: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          custom_body_script: string | null
+          custom_head_script: string | null
+          facebook_pixel_id: string | null
+          google_ads_id: string | null
+          google_tag_manager_id: string | null
+          id: string
+          name: string
+          shop_id: string
+          tiktok_pixel_id: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          custom_body_script?: string | null
+          custom_head_script?: string | null
+          facebook_pixel_id?: string | null
+          google_ads_id?: string | null
+          google_tag_manager_id?: string | null
+          id?: string
+          name: string
+          shop_id: string
+          tiktok_pixel_id?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          custom_body_script?: string | null
+          custom_head_script?: string | null
+          facebook_pixel_id?: string | null
+          google_ads_id?: string | null
+          google_tag_manager_id?: string | null
+          id?: string
+          name?: string
+          shop_id?: string
+          tiktok_pixel_id?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_profiles_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -323,6 +551,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_developer_of_shop: {
+        Args: { _developer_id: string; _shop_id: string }
         Returns: boolean
       }
       is_developer_of_shop_owner: {
