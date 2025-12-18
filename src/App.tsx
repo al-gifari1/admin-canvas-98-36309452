@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import ChangePassword from "./pages/ChangePassword";
 import NotAuthorized from "./pages/NotAuthorized";
+import LandingPagePreview from "./pages/LandingPagePreview";
 
 // Dashboards
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
@@ -32,6 +33,7 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
+            <Route path="/preview/:pageId" element={<LandingPagePreview />} />
             <Route path="/auth" element={
               <AuthRedirect>
                 <Auth />

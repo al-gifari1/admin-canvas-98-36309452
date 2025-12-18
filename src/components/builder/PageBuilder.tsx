@@ -171,11 +171,7 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
   };
 
   const handlePreview = () => {
-    // Open preview in new tab (you could implement a proper preview route)
-    toast({
-      title: 'Preview',
-      description: 'Preview functionality will open the published page.',
-    });
+    window.open(`/preview/${pageId}`, '_blank');
   };
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
