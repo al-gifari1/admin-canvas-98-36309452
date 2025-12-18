@@ -10,6 +10,7 @@ import { DeveloperCheckout } from './developer/DeveloperCheckout';
 import { DeveloperReports } from './developer/DeveloperReports';
 import { DeveloperSectionLibrary } from './developer/DeveloperSectionLibrary';
 import { DeveloperBuilder } from './developer/DeveloperBuilder';
+import { PageDashboard } from './developer/PageDashboard';
 
 export default function DeveloperDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -27,6 +28,18 @@ export default function DeveloperDashboard() {
     if (activeTab.startsWith('builder:')) {
       const pageId = activeTab.replace('builder:', '');
       return <DeveloperBuilder pageId={pageId} onBack={() => setActiveTab('landing-pages')} />;
+    }
+
+    // Handle page dashboard route with page ID
+    if (activeTab.startsWith('page-dashboard:')) {
+      const pageId = activeTab.replace('page-dashboard:', '');
+      return (
+        <PageDashboard 
+          pageId={pageId} 
+          onBack={() => setActiveTab('landing-pages')} 
+          onOpenBuilder={() => setActiveTab(`builder:${pageId}`)}
+        />
+      );
     }
 
     switch (activeTab) {

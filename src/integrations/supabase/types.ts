@@ -144,6 +144,7 @@ export type Database = {
       }
       landing_pages: {
         Row: {
+          checkout_config: Json | null
           checkout_profile_id: string | null
           content: Json | null
           created_at: string
@@ -160,6 +161,7 @@ export type Database = {
           views_count: number | null
         }
         Insert: {
+          checkout_config?: Json | null
           checkout_profile_id?: string | null
           content?: Json | null
           created_at?: string
@@ -176,6 +178,7 @@ export type Database = {
           views_count?: number | null
         }
         Update: {
+          checkout_config?: Json | null
           checkout_profile_id?: string | null
           content?: Json | null
           created_at?: string
