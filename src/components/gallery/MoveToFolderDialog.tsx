@@ -22,11 +22,12 @@ interface MediaFolder {
 interface MoveToFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  shopId: string;
+  shopId: string; // 'my-files' for personal space or actual shop id
   currentFolderId: string | null;
   selectedCount: number;
   onMove: (targetFolderId: string | null) => Promise<void>;
   excludeFolderIds?: string[];
+  userId?: string;
 }
 
 interface FolderTreeItemProps {
@@ -116,6 +117,7 @@ export function MoveToFolderDialog({
   selectedCount,
   onMove,
   excludeFolderIds = [],
+  userId,
 }: MoveToFolderDialogProps) {
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -123,7 +125,7 @@ export function MoveToFolderDialog({
   const [moving, setMoving] = useState(false);
 
   useEffect(() => {
-    if (open && shopId) {
+    if (open) {
       fetchFolders();
       setSelectedFolderId(null);
     }
@@ -132,11 +134,17 @@ export function MoveToFolderDialog({
   const fetchFolders = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('media_folders')
-        .select('id, name, parent_id')
-        .eq('shop_id', shopId)
-        .order('name');
+      const isMyFiles = shopId === 'my-files';
+      
+      let query = supabase.from('media_folders').select('id, name, parent_id');
+      
+      if (isMyFiles && userId) {
+        query = query.is('shop_id', null).eq('created_by', userId);
+      } else if (!isMyFiles) {
+        query = query.eq('shop_id', shopId);
+      }
+      
+      const { data, error } = await query.order('name');
 
       if (error) throw error;
       setFolders(data || []);
