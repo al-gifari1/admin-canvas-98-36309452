@@ -710,22 +710,143 @@ export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRen
       );
     }
     case 'grid': {
-      const gridContent = block.content.grid as GridContent | undefined;
-      const columns = gridContent?.layout?.columns?.desktop || 3;
-      const columnGap = gridContent?.layout?.columnGap?.desktop || 16;
-      const rowGap = gridContent?.layout?.rowGap?.desktop || 16;
+      const rawGrid = block.content.grid as GridContent | undefined;
+      
+      const defaultGrid: GridContent = {
+        layout: {
+          columns: { desktop: 3, tablet: 2, mobile: 1 },
+          columnGap: { desktop: 16, tablet: 12, mobile: 8 },
+          rowGap: { desktop: 16, tablet: 12, mobile: 8 },
+          autoFlow: 'row',
+          justifyItems: 'stretch',
+          alignItems: 'stretch',
+        },
+        background: { type: 'solid', color: 'transparent' },
+        border: {
+          style: 'none',
+          width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          color: '#e5e7eb',
+          radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+        },
+        shadow: { enabled: false, horizontal: 0, vertical: 4, blur: 6, spread: 0, color: 'rgba(0,0,0,0.1)' },
+        advanced: {
+          margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+          maxWidth: 'full',
+          responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+        },
+      };
+      
+      // Deep merge with defaults
+      const gridContent: GridContent = {
+        layout: { ...defaultGrid.layout, ...rawGrid?.layout },
+        background: { ...defaultGrid.background, ...rawGrid?.background },
+        border: { 
+          ...defaultGrid.border, 
+          ...rawGrid?.border,
+          width: { ...defaultGrid.border.width, ...rawGrid?.border?.width },
+          radius: { ...defaultGrid.border.radius, ...rawGrid?.border?.radius },
+        },
+        shadow: { ...defaultGrid.shadow, ...rawGrid?.shadow },
+        advanced: { 
+          ...defaultGrid.advanced, 
+          ...rawGrid?.advanced,
+          margin: { ...defaultGrid.advanced.margin, ...rawGrid?.advanced?.margin },
+          padding: { ...defaultGrid.advanced.padding, ...rawGrid?.advanced?.padding },
+          responsive: { ...defaultGrid.advanced.responsive, ...rawGrid?.advanced?.responsive },
+        },
+      };
+      
+      const { layout, background, border, shadow, advanced } = gridContent;
+      
+      // Max width classes
+      const maxWidthClasses: Record<string, string> = { 
+        full: 'max-w-full', 
+        lg: 'max-w-6xl', 
+        md: 'max-w-4xl', 
+        sm: 'max-w-2xl' 
+      };
+      
+      // Build wrapper styles
+      const wrapperStyles: CSSProperties = {
+        // Padding
+        paddingTop: `${advanced.padding.top}px`,
+        paddingRight: `${advanced.padding.right}px`,
+        paddingBottom: `${advanced.padding.bottom}px`,
+        paddingLeft: `${advanced.padding.left}px`,
+        // Margin
+        marginTop: `${advanced.margin.top}px`,
+        marginRight: advanced.maxWidth === 'full' ? `${advanced.margin.right}px` : 'auto',
+        marginBottom: `${advanced.margin.bottom}px`,
+        marginLeft: advanced.maxWidth === 'full' ? `${advanced.margin.left}px` : 'auto',
+      };
+      
+      // Background
+      if (background.type === 'solid' && background.color && background.color !== 'transparent') {
+        wrapperStyles.backgroundColor = background.color;
+      } else if (background.type === 'gradient' && background.gradient) {
+        const { angle = 90, stops } = background.gradient;
+        if (stops && stops.length > 0) {
+          const gradientStops = stops.map(s => `${s.color} ${s.position}%`).join(', ');
+          wrapperStyles.background = `linear-gradient(${angle}deg, ${gradientStops})`;
+        }
+      } else if (background.type === 'image' && background.image?.url) {
+        wrapperStyles.backgroundImage = `url(${background.image.url})`;
+        wrapperStyles.backgroundSize = background.image.size === 'repeat' ? 'auto' : (background.image.size || 'cover');
+        wrapperStyles.backgroundRepeat = background.image.size === 'repeat' ? 'repeat' : 'no-repeat';
+        wrapperStyles.backgroundPosition = background.image.position || 'center';
+      }
+      
+      // Border
+      if (border.style !== 'none') {
+        wrapperStyles.borderStyle = border.style;
+        wrapperStyles.borderTopWidth = `${border.width.top}px`;
+        wrapperStyles.borderRightWidth = `${border.width.right}px`;
+        wrapperStyles.borderBottomWidth = `${border.width.bottom}px`;
+        wrapperStyles.borderLeftWidth = `${border.width.left}px`;
+        wrapperStyles.borderColor = border.color;
+      }
+      wrapperStyles.borderTopLeftRadius = `${border.radius.topLeft}px`;
+      wrapperStyles.borderTopRightRadius = `${border.radius.topRight}px`;
+      wrapperStyles.borderBottomRightRadius = `${border.radius.bottomRight}px`;
+      wrapperStyles.borderBottomLeftRadius = `${border.radius.bottomLeft}px`;
+      
+      // Shadow
+      if (shadow.enabled) {
+        wrapperStyles.boxShadow = `${shadow.horizontal}px ${shadow.vertical}px ${shadow.blur}px ${shadow.spread}px ${shadow.color}`;
+      }
+      
+      // Grid layout styles
+      const columns = layout.columns?.desktop || 3;
+      const columnGap = layout.columnGap?.desktop || 16;
+      const rowGap = layout.rowGap?.desktop || 16;
+      
+      const gridStyles: CSSProperties = {
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columns}, 1fr)`,
+        columnGap,
+        rowGap,
+      };
+      
+      // Responsive visibility classes
+      const visibilityClasses: string[] = [];
+      if (advanced.responsive?.hideOnDesktop) visibilityClasses.push('lg:hidden');
+      if (advanced.responsive?.hideOnTablet) visibilityClasses.push('md:hidden lg:block');
+      if (advanced.responsive?.hideOnMobile) visibilityClasses.push('max-md:hidden');
+      
+      const customProps: Record<string, string> = {};
+      if (advanced.cssId) customProps.id = advanced.cssId;
+      
       return (
-        <div className="p-4">
-          <div 
-            className="grid" 
-            style={{ 
-              gridTemplateColumns: `repeat(${columns}, 1fr)`, 
-              columnGap, 
-              rowGap 
-            }}
-          >
+        <div 
+          className={`widget-${block.id} ${maxWidthClasses[advanced.maxWidth] || ''} ${visibilityClasses.join(' ')} ${advanced.cssClasses || ''}`}
+          style={wrapperStyles}
+          {...customProps}
+        >
+          <ScopedStyle widgetId={block.id} css={advanced.customCSS} />
+          <div style={gridStyles}>
             {Array.from({ length: columns }).map((_, i) => (
-              <div key={i} className="border-2 border-dashed border-border rounded-lg p-4 text-center text-muted-foreground min-h-[100px]">
+              <div key={i} className="border-2 border-dashed border-border rounded-lg p-4 text-center text-muted-foreground min-h-[100px] flex items-center justify-center">
                 <p className="text-xs">Column {i + 1}</p>
               </div>
             ))}
