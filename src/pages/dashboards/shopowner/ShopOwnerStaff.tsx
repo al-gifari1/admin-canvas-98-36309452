@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { UsersList } from '@/components/users/UsersList';
 
@@ -7,6 +8,13 @@ interface ShopOwnerStaffProps {
 }
 
 export function ShopOwnerStaff({ shop, onUpdate }: ShopOwnerStaffProps) {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    onUpdate();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -14,9 +22,9 @@ export function ShopOwnerStaff({ shop, onUpdate }: ShopOwnerStaffProps) {
           <h2 className="text-2xl font-bold">Staff Management</h2>
           <p className="text-muted-foreground">Manage your order managers and employees</p>
         </div>
-        <CreateUserDialog onUserCreated={onUpdate} shopId={shop?.id} />
+        <CreateUserDialog onUserCreated={handleRefresh} shopId={shop?.id} />
       </div>
-      <UsersList onUpdate={onUpdate} />
+      <UsersList key={refreshKey} onUpdate={handleRefresh} />
     </div>
   );
 }
