@@ -5,3 +5,4 @@ export { BoxModelControl, type BoxModelValue } from './BoxModelControl';
 export { TypographyControl, type TypographyValue } from './TypographyControl';
 export { ShadowControl, type TextShadowValue } from './ShadowControl';
 export { LinkOptionsInput, type LinkValue } from './LinkOptionsInput';
+export { CustomCSSFields } from './CustomCSSFields';

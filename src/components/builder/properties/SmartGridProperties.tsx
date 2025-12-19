@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveSlider } from '../controls/ResponsiveSlider';
 import { BoxModelControl } from '../controls/BoxModelControl';
+import { CustomCSSFields } from '../controls/CustomCSSFields';
 import { Button } from '@/components/ui/button';
 import { 
   AlignHorizontalJustifyStart,
@@ -437,6 +438,16 @@ export function SmartGridProperties({ content, onUpdate, tab }: SmartGridPropert
             </div>
           </div>
         </div>
+
+        {/* Custom CSS */}
+        <CustomCSSFields
+          cssId={smartGrid.advanced.cssId}
+          cssClasses={smartGrid.advanced.cssClasses}
+          customCSS={smartGrid.advanced.customCSS}
+          onCssIdChange={(cssId) => updateAdvanced({ cssId })}
+          onCssClassesChange={(cssClasses) => updateAdvanced({ cssClasses })}
+          onCustomCSSChange={(customCSS) => updateAdvanced({ customCSS })}
+        />
       </div>
     );
   }

@@ -121,6 +121,7 @@ export interface HeadingAdvanced {
   };
   cssId?: string;
   cssClasses?: string;
+  customCSS?: string;
 }
 
 export interface HeadingContent {
@@ -197,6 +198,7 @@ export interface ContainerAdvanced {
   zIndex?: number;
   cssId?: string;
   cssClasses?: string;
+  customCSS?: string;
   responsive: {
     hideOnDesktop: boolean;
     hideOnTablet: boolean;
@@ -364,6 +366,7 @@ export interface ButtonAdvanced {
   };
   cssId?: string;
   cssClasses?: string;
+  customCSS?: string;
 }
 
 export interface ButtonContent {

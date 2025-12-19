@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
-import { DeviceToggle, ResponsiveSlider, ColorPicker, BoxModelControl, LinkOptionsInput } from '../controls';
+import { DeviceToggle, ResponsiveSlider, ColorPicker, BoxModelControl, LinkOptionsInput, CustomCSSFields } from '../controls';
 import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { icons } from 'lucide-react';
@@ -533,29 +533,14 @@ export function ButtonProperties({ content, onUpdate, tab }: ButtonPropertiesPro
       </div>
 
       {/* Custom CSS */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium text-foreground">Custom Attributes</h4>
-        
-        <div className="space-y-2">
-          <Label htmlFor="css-id">CSS ID</Label>
-          <Input
-            id="css-id"
-            value={button.advanced.cssId || ''}
-            onChange={(e) => updateAdvanced({ cssId: e.target.value })}
-            placeholder="my-button"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="css-classes">CSS Classes</Label>
-          <Input
-            id="css-classes"
-            value={button.advanced.cssClasses || ''}
-            onChange={(e) => updateAdvanced({ cssClasses: e.target.value })}
-            placeholder="class-1 class-2"
-          />
-        </div>
-      </div>
+      <CustomCSSFields
+        cssId={button.advanced.cssId}
+        cssClasses={button.advanced.cssClasses}
+        customCSS={button.advanced.customCSS}
+        onCssIdChange={(cssId) => updateAdvanced({ cssId })}
+        onCssClassesChange={(cssClasses) => updateAdvanced({ cssClasses })}
+        onCustomCSSChange={(customCSS) => updateAdvanced({ customCSS })}
+      />
     </div>
   );
 }
