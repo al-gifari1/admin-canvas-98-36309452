@@ -1,5 +1,5 @@
 import { CSSProperties } from 'react';
-import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue, FlexContainerContent, SmartGridContent } from '@/types/builder';
+import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue, FlexContainerContent, SmartGridContent, GridContent } from '@/types/builder';
 import { FlexContainerRenderer } from './FlexContainerRenderer';
 import { SmartGridRenderer } from './SmartGridRenderer';
 import { ScopedStyle } from './ScopedStyle';
@@ -710,8 +710,28 @@ export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRen
       );
     }
     case 'grid': {
-      const { columns, gap } = block.content.grid || { columns: 3, gap: 16 };
-      return <div className="p-4"><div className="grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)`, gap }}>{Array.from({ length: columns }).map((_, i) => <div key={i} className="border-2 border-dashed border-border rounded-lg p-4 text-center text-muted-foreground min-h-[100px]"><p className="text-xs">Column {i + 1}</p></div>)}</div></div>;
+      const gridContent = block.content.grid as GridContent | undefined;
+      const columns = gridContent?.layout?.columns?.desktop || 3;
+      const columnGap = gridContent?.layout?.columnGap?.desktop || 16;
+      const rowGap = gridContent?.layout?.rowGap?.desktop || 16;
+      return (
+        <div className="p-4">
+          <div 
+            className="grid" 
+            style={{ 
+              gridTemplateColumns: `repeat(${columns}, 1fr)`, 
+              columnGap, 
+              rowGap 
+            }}
+          >
+            {Array.from({ length: columns }).map((_, i) => (
+              <div key={i} className="border-2 border-dashed border-border rounded-lg p-4 text-center text-muted-foreground min-h-[100px]">
+                <p className="text-xs">Column {i + 1}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     }
     case 'tabs': {
       const { items } = block.content.tabs || { items: [{ label: 'Tab 1', content: 'Content' }] };

@@ -254,6 +254,24 @@ export interface FlexContainerContent {
   };
 }
 
+// ============ GRID TYPES ============
+export interface GridLayout {
+  columns: ResponsiveValue;
+  columnGap: ResponsiveValue;
+  rowGap: ResponsiveValue;
+  autoFlow: 'row' | 'column' | 'dense' | 'row-dense' | 'column-dense';
+  justifyItems: 'start' | 'center' | 'end' | 'stretch';
+  alignItems: 'start' | 'center' | 'end' | 'stretch';
+}
+
+export interface GridContent {
+  layout: GridLayout;
+  background: ContainerBackground;
+  border: ContainerBorder;
+  shadow: ContainerShadow;
+  advanced: ContainerAdvanced;
+}
+
 // ============ SMART GRID TYPES ============
 export interface SmartGridLayout {
   columns: ResponsiveValue;
@@ -423,10 +441,7 @@ export interface WidgetContent {
   };
   // Layout
   container?: ContainerContent;
-  grid?: {
-    columns: 2 | 3 | 4;
-    gap: number;
-  };
+  grid?: GridContent;
   flexContainer?: FlexContainerContent;
   smartGrid?: SmartGridContent;
   tabs?: {
@@ -661,7 +676,32 @@ export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
       },
     }
   },
-  grid: { grid: { columns: 3, gap: 16 } },
+  grid: {
+    grid: {
+      layout: {
+        columns: { desktop: 3, tablet: 2, mobile: 1 },
+        columnGap: { desktop: 16, tablet: 12, mobile: 8 },
+        rowGap: { desktop: 16, tablet: 12, mobile: 8 },
+        autoFlow: 'row',
+        justifyItems: 'stretch',
+        alignItems: 'stretch',
+      },
+      background: { type: 'solid', color: 'transparent' },
+      border: {
+        style: 'none',
+        width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        color: '#e5e7eb',
+        radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+      },
+      shadow: { enabled: false, horizontal: 0, vertical: 4, blur: 6, spread: 0, color: 'rgba(0,0,0,0.1)' },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+        maxWidth: 'lg',
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+    }
+  },
   'flex-container': {
     flexContainer: {
       layout: {
