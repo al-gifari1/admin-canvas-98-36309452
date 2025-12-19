@@ -458,6 +458,7 @@ export type Database = {
           created_by: string
           current_stock: number | null
           description: string | null
+          digital_config: Json | null
           discount_percentage: number | null
           discount_price: number | null
           download_url: string | null
@@ -492,6 +493,7 @@ export type Database = {
           created_by: string
           current_stock?: number | null
           description?: string | null
+          digital_config?: Json | null
           discount_percentage?: number | null
           discount_price?: number | null
           download_url?: string | null
@@ -526,6 +528,7 @@ export type Database = {
           created_by?: string
           current_stock?: number | null
           description?: string | null
+          digital_config?: Json | null
           discount_percentage?: number | null
           discount_price?: number | null
           download_url?: string | null
