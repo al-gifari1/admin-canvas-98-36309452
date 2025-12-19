@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library } from 'lucide-react';
+import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library, Loader2, Layout, ShoppingCart, Star, Puzzle } from 'lucide-react';
 import { icons } from 'lucide-react';
 import { Block, WIDGET_LIBRARY, WidgetType, DEFAULT_WIDGET_CONTENT } from '@/types/builder';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,10 +35,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 function getIconByName(name: string): LucideIcon {
   const icon = icons[name as keyof typeof icons];
   return icon || HelpCircle;
+}
+
+interface SectionTemplate {
+  id: string;
+  name: string;
+  category: string;
+  type: string;
+  content: Json;
+  is_system_template: boolean;
 }
 
 interface BuilderCanvasProps {
@@ -42,6 +62,7 @@ interface BuilderCanvasProps {
   onDeleteBlock: (id: string) => void;
   onDuplicateBlock?: (id: string) => void;
   onAddBlock?: (type: WidgetType, index: number) => void;
+  onImportBlocks?: (blocks: Block[], index: number) => void;
   viewMode: 'mobile' | 'desktop';
 }
 
@@ -163,7 +184,13 @@ function DropZone({ isOver }: { isOver: boolean }) {
 }
 
 // Add Widget Button with dropdown
-function AddWidgetButton({ onAddWidget }: { onAddWidget: (type: WidgetType) => void }) {
+function AddWidgetButton({ 
+  onAddWidget, 
+  onOpenLibrary 
+}: { 
+  onAddWidget: (type: WidgetType) => void;
+  onOpenLibrary: () => void;
+}) {
   // Group widgets by category
   const groupedWidgets = WIDGET_LIBRARY.reduce((acc, widget) => {
     if (widget.category === 'legacy') return acc;
@@ -180,41 +207,228 @@ function AddWidgetButton({ onAddWidget }: { onAddWidget: (type: WidgetType) => v
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1.5 text-xs border-dashed"
-        >
-          <Plus className="h-3 w-3" />
-          Add Widget
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto">
-        {Object.entries(groupedWidgets).map(([category, widgets]) => (
-          <div key={category}>
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              {categoryLabels[category] || category}
-            </DropdownMenuLabel>
-            {widgets.map((widget) => {
-              const IconComponent = getIconByName(widget.icon);
-              return (
-                <DropdownMenuItem
-                  key={widget.type}
-                  onClick={() => onAddWidget(widget.type)}
-                  className="gap-2"
-                >
-                  <IconComponent className="h-4 w-4" />
-                  <span>{widget.label}</span>
-                </DropdownMenuItem>
-              );
-            })}
-            <DropdownMenuSeparator />
-          </div>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-xs border-dashed"
+          >
+            <Plus className="h-3 w-3" />
+            Add Widget
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto">
+          {Object.entries(groupedWidgets).map(([category, widgets]) => (
+            <div key={category}>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {categoryLabels[category] || category}
+              </DropdownMenuLabel>
+              {widgets.map((widget) => {
+                const IconComponent = getIconByName(widget.icon);
+                return (
+                  <DropdownMenuItem
+                    key={widget.type}
+                    onClick={() => onAddWidget(widget.type)}
+                    className="gap-2"
+                  >
+                    <IconComponent className="h-4 w-4" />
+                    <span>{widget.label}</span>
+                  </DropdownMenuItem>
+                );
+              })}
+              <DropdownMenuSeparator />
+            </div>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 gap-1.5 text-xs border-dashed"
+        onClick={onOpenLibrary}
+      >
+        <Library className="h-3 w-3" />
+        Import from Library
+      </Button>
+    </div>
+  );
+}
+
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  hero: Layout,
+  features: Star,
+  commerce: ShoppingCart,
+  custom: Puzzle,
+};
+
+// Import from Library Dialog
+function ImportLibraryDialog({
+  open,
+  onOpenChange,
+  onImport,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onImport: (blocks: Block[]) => void;
+}) {
+  const [templates, setTemplates] = useState<SectionTemplate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      fetchTemplates();
+    }
+  }, [open]);
+
+  const fetchTemplates = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('section_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      toast.error('Failed to load templates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImport = (template: SectionTemplate) => {
+    try {
+      // Parse the content - it could be a single block or array of blocks
+      const content = template.content as unknown;
+      let blocks: Block[] = [];
+
+      if (Array.isArray(content)) {
+        blocks = content.map((block: Block, index: number) => ({
+          ...block,
+          id: `${block.type}-${Date.now()}-${index}`,
+        }));
+      } else if (content && typeof content === 'object') {
+        // Single block
+        const block = content as Block;
+        blocks = [{
+          ...block,
+          id: `${block.type || 'container'}-${Date.now()}`,
+        }];
+      }
+
+      if (blocks.length === 0) {
+        toast.error('Template has no valid content');
+        return;
+      }
+
+      onImport(blocks);
+      onOpenChange(false);
+      toast.success(`Imported "${template.name}" successfully`);
+    } catch (error) {
+      console.error('Error importing template:', error);
+      toast.error('Failed to import template');
+    }
+  };
+
+  const categories = [...new Set(templates.map(t => t.category))];
+  const filteredTemplates = selectedCategory 
+    ? templates.filter(t => t.category === selectedCategory)
+    : templates;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Library className="h-5 w-5" />
+            Import from Section Library
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Category filter */}
+        <div className="flex flex-wrap gap-2 pb-2">
+          <Button
+            variant={selectedCategory === null ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedCategory(null)}
+          >
+            All
+          </Button>
+          {categories.map((category) => {
+            const IconComponent = CATEGORY_ICONS[category] || Puzzle;
+            return (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category)}
+                className="gap-1.5"
+              >
+                <IconComponent className="h-3.5 w-3.5" />
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </Button>
+            );
+          })}
+        </div>
+
+        <ScrollArea className="h-[500px] pr-4">
+          {loading ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredTemplates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+              <Library className="h-12 w-12 mb-3 opacity-50" />
+              <p>No templates found</p>
+              <p className="text-sm">Create templates in the Section Library</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {filteredTemplates.map((template) => {
+                const IconComponent = CATEGORY_ICONS[template.category] || Puzzle;
+                return (
+                  <Card
+                    key={template.id}
+                    className="cursor-pointer hover:border-primary transition-colors group"
+                    onClick={() => handleImport(template)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                            <IconComponent className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
+                              {template.name}
+                            </h4>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {template.category} • {template.type}
+                            </p>
+                          </div>
+                        </div>
+                        {template.is_system_template && (
+                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            System
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -225,6 +439,7 @@ export function BuilderCanvas({
   onDeleteBlock,
   onDuplicateBlock,
   onAddBlock,
+  onImportBlocks,
   viewMode,
 }: BuilderCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -233,6 +448,8 @@ export function BuilderCanvas({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [blockToDelete, setBlockToDelete] = useState<string | null>(null);
+  const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
+  const [insertIndex, setInsertIndex] = useState(0);
 
   const handleDeleteClick = (blockId: string) => {
     setBlockToDelete(blockId);
@@ -250,6 +467,17 @@ export function BuilderCanvas({
   const handleAddWidget = (type: WidgetType, index: number) => {
     if (onAddBlock) {
       onAddBlock(type, index);
+    }
+  };
+
+  const handleOpenLibrary = (index: number) => {
+    setInsertIndex(index);
+    setLibraryDialogOpen(true);
+  };
+
+  const handleImportFromLibrary = (importedBlocks: Block[]) => {
+    if (onImportBlocks) {
+      onImportBlocks(importedBlocks, insertIndex);
     }
   };
 
@@ -292,7 +520,10 @@ export function BuilderCanvas({
                     {onAddBlock && (
                       <>
                         <span className="text-muted-foreground">or</span>
-                        <AddWidgetButton onAddWidget={(type) => handleAddWidget(type, 0)} />
+                        <AddWidgetButton 
+                          onAddWidget={(type) => handleAddWidget(type, 0)} 
+                          onOpenLibrary={() => handleOpenLibrary(0)}
+                        />
                       </>
                     )}
                   </div>
@@ -307,7 +538,10 @@ export function BuilderCanvas({
                   {/* Top add button */}
                   {onAddBlock && (
                     <div className="flex justify-center py-2 border-b border-dashed border-border/50 bg-muted/30">
-                      <AddWidgetButton onAddWidget={(type) => handleAddWidget(type, 0)} />
+                      <AddWidgetButton 
+                        onAddWidget={(type) => handleAddWidget(type, 0)} 
+                        onOpenLibrary={() => handleOpenLibrary(0)}
+                      />
                     </div>
                   )}
                   
@@ -326,7 +560,10 @@ export function BuilderCanvas({
                       {/* Add button between blocks */}
                       {onAddBlock && (
                         <div className="flex justify-center py-2 border-y border-dashed border-border/50 bg-muted/30 opacity-0 hover:opacity-100 transition-opacity">
-                          <AddWidgetButton onAddWidget={(type) => handleAddWidget(type, index + 1)} />
+                          <AddWidgetButton 
+                            onAddWidget={(type) => handleAddWidget(type, index + 1)} 
+                            onOpenLibrary={() => handleOpenLibrary(index + 1)}
+                          />
                         </div>
                       )}
                     </div>
@@ -355,6 +592,13 @@ export function BuilderCanvas({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import from Library Dialog */}
+      <ImportLibraryDialog
+        open={libraryDialogOpen}
+        onOpenChange={setLibraryDialogOpen}
+        onImport={handleImportFromLibrary}
+      />
     </>
   );
 }
