@@ -109,8 +109,14 @@ export function GalleryPickerDialog({
       // Fetch folders
       let folderQuery = supabase
         .from('media_folders')
-        .select('*')
-        .eq('parent_id', currentFolderId || null);
+        .select('*');
+      
+      // Handle null parent_id correctly (IS NULL vs = NULL)
+      if (currentFolderId) {
+        folderQuery = folderQuery.eq('parent_id', currentFolderId);
+      } else {
+        folderQuery = folderQuery.is('parent_id', null);
+      }
 
       if (selectedShopId !== 'all') {
         folderQuery = folderQuery.eq('shop_id', selectedShopId);
@@ -123,8 +129,14 @@ export function GalleryPickerDialog({
       let fileQuery = supabase
         .from('media_files')
         .select('*')
-        .eq('folder_id', currentFolderId || null)
         .ilike('mime_type', 'image/%');
+
+      // Handle null folder_id correctly (IS NULL vs = NULL)
+      if (currentFolderId) {
+        fileQuery = fileQuery.eq('folder_id', currentFolderId);
+      } else {
+        fileQuery = fileQuery.is('folder_id', null);
+      }
 
       if (selectedShopId !== 'all') {
         fileQuery = fileQuery.eq('shop_id', selectedShopId);
