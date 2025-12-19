@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Block, ContainerContent, ContainerLayout, ContainerBackground, ContainerBorder, ContainerShadow, ContainerAdvanced, ResponsiveValue } from '@/types/builder';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,12 @@ import {
   AlignVerticalJustifyCenter, 
   AlignVerticalJustifyEnd,
   Maximize2,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ContainerPropertiesProps {
   content: Block['content'];
@@ -109,6 +113,166 @@ const GAP_PRESETS = {
   medium: 16,
   large: 32,
 };
+
+// Image Background Control with Upload
+interface ImageBackgroundControlProps {
+  image?: { url?: string; size?: 'cover' | 'contain' | 'repeat'; position?: string };
+  onUpdate: (image: { url?: string; size?: 'cover' | 'contain' | 'repeat'; position?: string }) => void;
+}
+
+function ImageBackgroundControl({ image, onUpdate }: ImageBackgroundControlProps) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please login to upload images');
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('builder-assets')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('builder-assets')
+        .getPublicUrl(fileName);
+
+      onUpdate({
+        ...image,
+        url: publicUrl,
+        size: image?.size || 'cover',
+        position: image?.position || 'center',
+      });
+
+      toast.success('Image uploaded successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Image Preview */}
+      {image?.url && (
+        <div className="relative rounded-md overflow-hidden border border-border">
+          <img 
+            src={image.url} 
+            alt="Background preview" 
+            className="w-full h-24 object-cover"
+          />
+        </div>
+      )}
+
+      {/* URL Input with Upload Button */}
+      <div className="space-y-2">
+        <Label className="text-xs">Image URL</Label>
+        <div className="flex gap-2">
+          <Input
+            value={image?.url || ''}
+            onChange={(e) => onUpdate({
+              ...image,
+              url: e.target.value,
+              size: image?.size || 'cover',
+              position: image?.position || 'center',
+            })}
+            placeholder="https://..."
+            className="h-8 text-xs flex-1"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
+      </div>
+
+      {/* Size */}
+      <div className="space-y-2">
+        <Label className="text-xs">Size</Label>
+        <Select
+          value={image?.size || 'cover'}
+          onValueChange={(v) => onUpdate({
+            ...image,
+            url: image?.url,
+            size: v as 'cover' | 'contain' | 'repeat',
+          })}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cover">Cover</SelectItem>
+            <SelectItem value="contain">Contain</SelectItem>
+            <SelectItem value="repeat">Repeat</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Position */}
+      <div className="space-y-2">
+        <Label className="text-xs">Position</Label>
+        <Select
+          value={image?.position || 'center'}
+          onValueChange={(v) => onUpdate({
+            ...image,
+            url: image?.url,
+            size: image?.size || 'cover',
+            position: v,
+          })}
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="center">Center</SelectItem>
+            <SelectItem value="top">Top</SelectItem>
+            <SelectItem value="bottom">Bottom</SelectItem>
+            <SelectItem value="left">Left</SelectItem>
+            <SelectItem value="right">Right</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
 
 export function ContainerProperties({ content, onUpdate, tab }: ContainerPropertiesProps) {
   const rawContainer = content.container;
@@ -560,45 +724,16 @@ export function ContainerProperties({ content, onUpdate, tab }: ContainerPropert
           )}
 
           {container.background.type === 'image' && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="text-xs">Image URL</Label>
-                <Input
-                  value={container.background.image?.url || ''}
-                  onChange={(e) => updateBackground({
-                    image: {
-                      ...container.background.image,
-                      url: e.target.value,
-                      size: container.background.image?.size || 'cover',
-                      position: container.background.image?.position || 'center'
-                    }
-                  })}
-                  placeholder="https://..."
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Size</Label>
-                <Select
-                  value={container.background.image?.size || 'cover'}
-                  onValueChange={(v) => updateBackground({
-                    image: {
-                      ...container.background.image!,
-                      size: v as 'cover' | 'contain' | 'repeat'
-                    }
-                  })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cover">Cover</SelectItem>
-                    <SelectItem value="contain">Contain</SelectItem>
-                    <SelectItem value="repeat">Repeat</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <ImageBackgroundControl 
+              image={container.background.image}
+              onUpdate={(image) => updateBackground({ 
+                image: {
+                  url: image.url || '',
+                  size: image.size || 'cover',
+                  position: image.position || 'center',
+                }
+              })}
+            />
           )}
         </div>
 
