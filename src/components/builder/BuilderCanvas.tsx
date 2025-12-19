@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library, Loader2, Layout, ShoppingCart, Star, Puzzle, ImageOff } from 'lucide-react';
+import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library, Loader2, Layout, ShoppingCart, Star, Puzzle, ImageOff, Code } from 'lucide-react';
 import { icons } from 'lucide-react';
 import { Block, WIDGET_LIBRARY, WidgetType, DEFAULT_WIDGET_CONTENT } from '@/types/builder';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,7 @@ interface BuilderCanvasProps {
   onAddBlock?: (type: WidgetType, index: number) => void;
   onImportBlocks?: (blocks: Block[], index: number) => void;
   onUpdateBlockContent?: (blockId: string, content: Partial<Block['content']>) => void;
+  onToggleCodeMode?: (blockId: string) => void;
   viewMode: 'mobile' | 'desktop';
 }
 
@@ -75,6 +76,7 @@ function SortableBlock({
   onDelete,
   onDuplicate,
   onContentChange,
+  onToggleCodeMode,
 }: {
   block: Block;
   isSelected: boolean;
@@ -82,6 +84,7 @@ function SortableBlock({
   onDelete: () => void;
   onDuplicate?: () => void;
   onContentChange?: (content: Partial<Block['content']>) => void;
+  onToggleCodeMode?: () => void;
 }) {
   const {
     attributes,
@@ -142,6 +145,19 @@ function SortableBlock({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {/* Code Mode Toggle */}
+          {onToggleCodeMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleCodeMode();
+              }}
+              className={`p-1 hover:bg-primary-foreground/20 rounded ${block.mode === 'code' ? 'bg-amber-500/30' : ''}`}
+              title={block.mode === 'code' ? 'Code Mode Active' : 'Switch to Code Mode'}
+            >
+              <Code className="h-3 w-3" />
+            </button>
+          )}
           {onDuplicate && (
             <button
               onClick={(e) => {
@@ -167,13 +183,20 @@ function SortableBlock({
         </div>
       </div>
 
-      {/* Widget content - allow pointer events on selected blocks for handles */}
+      {/* Widget content - code mode uses dangerouslySetInnerHTML */}
       <div className={isSelected ? 'relative' : 'pointer-events-none'}>
-        <WidgetRenderer 
-          block={block} 
-          isSelected={isSelected}
-          onContentChange={onContentChange}
-        />
+        {block.mode === 'code' ? (
+          <div 
+            className="code-mode-section relative"
+            dangerouslySetInnerHTML={{ __html: block.htmlContent || '<!-- Empty Code Block -->' }} 
+          />
+        ) : (
+          <WidgetRenderer 
+            block={block} 
+            isSelected={isSelected}
+            onContentChange={onContentChange}
+          />
+        )}
       </div>
     </div>
   );
@@ -461,6 +484,7 @@ export function BuilderCanvas({
   onAddBlock,
   onImportBlocks,
   onUpdateBlockContent,
+  onToggleCodeMode,
   viewMode,
 }: BuilderCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -583,6 +607,7 @@ export function BuilderCanvas({
                         onDelete={() => handleDeleteClick(block.id)}
                         onDuplicate={onDuplicateBlock ? () => onDuplicateBlock(block.id) : undefined}
                         onContentChange={onUpdateBlockContent ? (content) => onUpdateBlockContent(block.id, content) : undefined}
+                        onToggleCodeMode={onToggleCodeMode ? () => onToggleCodeMode(block.id) : undefined}
                       />
                     </div>
                   ))}
