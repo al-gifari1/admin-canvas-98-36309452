@@ -22,6 +22,7 @@ import { WidgetLibrary } from '@/components/builder/WidgetLibrary';
 import { BuilderCanvas } from '@/components/builder/BuilderCanvas';
 import { PropertiesPanel } from '@/components/builder/PropertiesPanel';
 import { Block, WidgetType, PageContent, DEFAULT_WIDGET_CONTENT } from '@/types/builder';
+import { generateHTMLFromBlock } from '@/utils/htmlGenerator';
 
 interface PageBuilderProps {
   pageId: string;
@@ -219,6 +220,65 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
     );
   }, []);
 
+  // Toggle Code Mode for a block
+  const handleToggleCodeMode = useCallback((blockId: string) => {
+    setBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId) return block;
+
+        // If already in code mode, do nothing (use revert button)
+        if (block.mode === 'code') {
+          return block;
+        }
+
+        // Switch TO code mode
+        const htmlContent = generateHTMLFromBlock(block);
+        return {
+          ...block,
+          mode: 'code' as const,
+          htmlContent,
+          lastVisualSnapshot: { ...block.content },
+          codeVersionHistory: [
+            {
+              timestamp: new Date().toISOString(),
+              htmlContent,
+            },
+          ],
+        };
+      })
+    );
+  }, []);
+
+  // Revert from code mode to visual mode
+  const handleRevertToVisual = useCallback((blockId: string) => {
+    setBlocks((prev) =>
+      prev.map((block) => {
+        if (block.id !== blockId || !block.lastVisualSnapshot) return block;
+
+        return {
+          ...block,
+          mode: 'visual' as const,
+          content: block.lastVisualSnapshot,
+          htmlContent: undefined,
+          // Keep history for reference
+        };
+      })
+    );
+    toast({
+      title: 'Reverted to Visual Mode',
+      description: 'Your section has been restored to its last visual state.',
+    });
+  }, []);
+
+  // Update block with partial updates (for code mode HTML changes)
+  const handleUpdateBlockPartial = useCallback((blockId: string, updates: Partial<Block>) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId ? { ...block, ...updates } : block
+      )
+    );
+  }, []);
+
   const handleSave = async () => {
     if (!page) return;
 
@@ -398,6 +458,7 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
             onAddBlock={handleAddBlock}
             onImportBlocks={handleImportBlocks}
             onUpdateBlockContent={handleUpdateBlockContent}
+            onToggleCodeMode={handleToggleCodeMode}
             viewMode={viewMode}
           />
 
@@ -406,6 +467,8 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
             block={selectedBlock}
             onClose={() => setSelectedBlockId(null)}
             onUpdate={handleUpdateBlock}
+            onUpdateBlock={handleUpdateBlockPartial}
+            onRevertToVisual={handleRevertToVisual}
           />
 
           <DragOverlay>

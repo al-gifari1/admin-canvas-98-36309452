@@ -510,10 +510,21 @@ export interface WidgetContent {
   };
 }
 
+// Code mode version history entry
+export interface BlockCodeModeVersion {
+  timestamp: string;
+  htmlContent: string;
+}
+
 export interface Block {
   id: string;
   type: WidgetType;
   content: WidgetContent;
+  // Code Mode Fields
+  mode?: 'visual' | 'code';
+  htmlContent?: string;
+  lastVisualSnapshot?: WidgetContent;
+  codeVersionHistory?: BlockCodeModeVersion[];
 }
 
 // Keep for backwards compatibility

@@ -103,3 +103,24 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Code Mode Section Styling */
+.code-mode-section {
+  position: relative;
+  border: 2px dashed hsl(38 92% 50%);
+  min-height: 60px;
+}
+
+.code-mode-section::before {
+  content: '</> Code Mode';
+  position: absolute;
+  top: -22px;
+  right: 8px;
+  font-size: 10px;
+  background: hsl(38 92% 50%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  z-index: 10;
+}

@@ -25,6 +25,7 @@ import { TabsProperties } from './properties/TabsProperties';
 import { AccordionProperties } from './properties/AccordionProperties';
 import { GalleryProperties } from './properties/GalleryProperties';
 import { SliderProperties } from './properties/SliderProperties';
+import { CodeModeProperties } from './properties/CodeModeProperties';
 
 type TabType = 'content' | 'style' | 'advanced';
 
@@ -32,9 +33,11 @@ interface PropertiesPanelProps {
   block: Block | null;
   onClose: () => void;
   onUpdate: (blockId: string, content: Block['content']) => void;
+  onUpdateBlock?: (blockId: string, updates: Partial<Block>) => void;
+  onRevertToVisual?: (blockId: string) => void;
 }
 
-export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelProps) {
+export function PropertiesPanel({ block, onClose, onUpdate, onUpdateBlock, onRevertToVisual }: PropertiesPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('content');
 
   if (!block) {
@@ -53,6 +56,36 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
           </p>
         </div>
       </div>
+    );
+  }
+
+  // Code Mode: Show CodeModeProperties instead of regular tabs
+  if (block.mode === 'code') {
+    return (
+      <CodeModeProperties
+        block={block}
+        onUpdateHTML={(htmlContent, addToHistory) => {
+          if (onUpdateBlock) {
+            const updates: Partial<Block> = { htmlContent };
+            if (addToHistory) {
+              const newVersion = {
+                timestamp: new Date().toISOString(),
+                htmlContent,
+              };
+              updates.codeVersionHistory = [
+                newVersion,
+                ...(block.codeVersionHistory || []).slice(0, 19), // Keep last 20 versions
+              ];
+            }
+            onUpdateBlock(block.id, updates);
+          }
+        }}
+        onRevertToVisual={() => {
+          if (onRevertToVisual) {
+            onRevertToVisual(block.id);
+          }
+        }}
+      />
     );
   }
 
