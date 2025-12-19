@@ -21,6 +21,7 @@ export type WidgetType =
   | 'accordion'
   // Commerce & Marketing
   | 'checkout-form'
+  | 'smart-checkout'
   | 'countdown'
   | 'pricing-table'
   | 'testimonials'
@@ -307,6 +308,39 @@ export interface SmartGridItemSettings {
   justifySelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
 }
 
+// ============ SMART CHECKOUT TYPES ============
+export interface SmartCheckoutProduct {
+  id: string;
+  name: string;
+  price: number;
+  oldPrice?: number;
+  imageUrl: string;
+  sizes?: string[];
+}
+
+export interface SmartCheckoutShipping {
+  id: string;
+  label: string;
+  price: number;
+}
+
+export interface SmartCheckoutContent {
+  headline: string;
+  submitButtonText: string;
+  brandColor: string;
+  products: SmartCheckoutProduct[];
+  shippingOptions: SmartCheckoutShipping[];
+  fieldLabels: {
+    name: string;
+    phone: string;
+    district: string;
+    thana: string;
+    address: string;
+  };
+  showSizeSelector: boolean;
+  showQuantity: boolean;
+}
+
 // Button specific types
 export interface ButtonLink {
   url: string;
@@ -456,6 +490,7 @@ export interface WidgetContent {
     buttonText: string;
     showQuantity: boolean;
   };
+  smartCheckout?: SmartCheckoutContent;
   countdown?: {
     targetDate: string;
     title: string;
@@ -557,6 +592,7 @@ export const WIDGET_LIBRARY: WidgetDefinition[] = [
   { type: 'accordion', label: 'Accordion', description: 'Collapsible panels', icon: 'ChevronDown', category: 'layout' },
   // Commerce & Marketing
   { type: 'checkout-form', label: 'Checkout Form', description: 'Order form', icon: 'CreditCard', category: 'commerce' },
+  { type: 'smart-checkout', label: 'Smart Checkout', description: 'Full e-commerce checkout form', icon: 'ShoppingCart', category: 'commerce' },
   { type: 'countdown', label: 'Countdown', description: 'Timer widget', icon: 'Clock', category: 'commerce' },
   { type: 'pricing-table', label: 'Pricing Table', description: 'Price comparison', icon: 'DollarSign', category: 'commerce' },
   { type: 'testimonials', label: 'Testimonials', description: 'Customer reviews', icon: 'Quote', category: 'commerce' },
@@ -799,6 +835,44 @@ export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
   accordion: { accordion: { items: [{ title: 'Section 1', content: 'Content for section 1' }, { title: 'Section 2', content: 'Content for section 2' }] } },
   // Commerce
   'checkout-form': { checkoutForm: { title: 'Complete Your Order', buttonText: 'Place Order', showQuantity: true } },
+  'smart-checkout': {
+    smartCheckout: {
+      headline: 'অর্ডার করতে আপনার নাম, ঠিকানা, মোবাইল নাম্বার লিখে অর্ডার কন্ফার্ম করুন',
+      submitButtonText: 'অর্ডার কনফার্ম করুন',
+      brandColor: '#16a34a',
+      products: [
+        {
+          id: 'product-1',
+          name: 'Premium Watch',
+          price: 2499,
+          oldPrice: 3999,
+          imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200',
+          sizes: ['M', 'L', 'XL'],
+        },
+        {
+          id: 'product-2',
+          name: 'Leather Bag',
+          price: 1899,
+          oldPrice: 2499,
+          imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=200',
+          sizes: [],
+        },
+      ],
+      shippingOptions: [
+        { id: 'inside-dhaka', label: 'ঢাকার ভিতরে', price: 60 },
+        { id: 'outside-dhaka', label: 'ঢাকার বাহিরে', price: 120 },
+      ],
+      fieldLabels: {
+        name: 'আপনার নাম',
+        phone: 'মোবাইল নাম্বার',
+        district: 'জেলা',
+        thana: 'থানা',
+        address: 'সম্পূর্ণ ঠিকানা',
+      },
+      showSizeSelector: true,
+      showQuantity: true,
+    },
+  },
   countdown: { countdown: { targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), title: 'Sale Ends In' } },
   'pricing-table': { pricingTable: { plans: [{ name: 'Basic', price: '৳999', features: ['Feature 1', 'Feature 2'], highlighted: false }, { name: 'Pro', price: '৳2999', features: ['Everything in Basic', 'Feature 3', 'Feature 4'], highlighted: true }] } },
   testimonials: { testimonials: { items: [{ name: 'John Doe', role: 'Customer', text: 'Great product!', avatar: '' }] } },

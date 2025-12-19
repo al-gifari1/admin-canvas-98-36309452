@@ -2,6 +2,7 @@ import { CSSProperties } from 'react';
 import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue, FlexContainerContent, SmartGridContent, GridContent } from '@/types/builder';
 import { FlexContainerRenderer } from './FlexContainerRenderer';
 import { SmartGridRenderer } from './SmartGridRenderer';
+import { SmartCheckoutRenderer } from './SmartCheckoutRenderer';
 import { ScopedStyle } from './ScopedStyle';
 import {
   icons, 
@@ -891,6 +892,9 @@ export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRen
       const sizeClasses: Record<string, string> = { sm: 'h-6 w-6', md: 'h-8 w-8', lg: 'h-10 w-10' };
       const socialIcons = [Facebook, Twitter, Instagram, Youtube];
       return <div className="p-4 flex justify-center gap-4">{socialIcons.map((Icon, i) => <div key={i} className="p-2 rounded-lg bg-muted"><Icon className={`${sizeClasses[size]} text-muted-foreground`} /></div>)}</div>;
+    }
+    case 'smart-checkout': {
+      return <SmartCheckoutRenderer content={block.content.smartCheckout} />;
     }
     case 'hero': {
       const { headline, subtext, ctaText } = block.content.hero || { headline: 'Hero', subtext: '', ctaText: 'CTA' };

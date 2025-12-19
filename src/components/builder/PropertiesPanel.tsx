@@ -26,6 +26,7 @@ import { AccordionProperties } from './properties/AccordionProperties';
 import { GalleryProperties } from './properties/GalleryProperties';
 import { SliderProperties } from './properties/SliderProperties';
 import { CodeModeProperties } from './properties/CodeModeProperties';
+import { SmartCheckoutProperties } from './properties/SmartCheckoutProperties';
 
 type TabType = 'content' | 'style' | 'advanced';
 
@@ -139,6 +140,8 @@ export function PropertiesPanel({ block, onClose, onUpdate, onUpdateBlock, onRev
         return <GalleryProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'slider':
         return <SliderProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
+      case 'smart-checkout':
+        return <SmartCheckoutProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       default:
         return (
           <div className="rounded-lg border border-dashed border-border p-6 text-center">
