@@ -15,6 +15,8 @@ export type WidgetType =
   // Layout
   | 'container'
   | 'grid'
+  | 'flex-container'
+  | 'smart-grid'
   | 'tabs'
   | 'accordion'
   // Commerce & Marketing
@@ -228,6 +230,63 @@ export interface GridItemSettings {
   justifySelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
 }
 
+// ============ FLEX CONTAINER TYPES ============
+export interface FlexContainerLayout {
+  direction: 'row' | 'column';
+  wrap: 'nowrap' | 'wrap' | 'wrap-reverse';
+  justifyContent: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+  alignItems: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+  alignContent: 'start' | 'center' | 'end' | 'stretch' | 'between' | 'around';
+  gap: ResponsiveValue;
+}
+
+export interface FlexContainerContent {
+  layout: FlexContainerLayout;
+  background: ContainerBackground;
+  border: ContainerBorder;
+  shadow: ContainerShadow;
+  advanced: ContainerAdvanced;
+  canvasInteraction?: {
+    paddingHandles: boolean;
+    resizable: { width: boolean; height: boolean };
+  };
+}
+
+// ============ SMART GRID TYPES ============
+export interface SmartGridLayout {
+  columns: ResponsiveValue;
+  rows: 'auto' | number;
+  columnGap: ResponsiveValue;
+  rowGap: ResponsiveValue;
+  columnTemplate?: string;
+  rowTemplate?: string;
+  autoFlow: 'row' | 'column' | 'dense' | 'row-dense' | 'column-dense';
+  justifyItems: 'start' | 'center' | 'end' | 'stretch';
+  alignItems: 'start' | 'center' | 'end' | 'stretch';
+}
+
+export interface SmartGridContent {
+  layout: SmartGridLayout;
+  background: ContainerBackground;
+  border: ContainerBorder;
+  shadow: ContainerShadow;
+  advanced: ContainerAdvanced;
+  canvasInteraction?: {
+    showColumnGuides: boolean;
+    gapHandles: boolean;
+    cellResizable: boolean;
+  };
+}
+
+export interface SmartGridItemSettings {
+  columnSpan: ResponsiveValue;
+  rowSpan: ResponsiveValue;
+  columnStart?: number;
+  rowStart?: number;
+  alignSelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+  justifySelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+}
+
 // Button specific types
 export interface ButtonLink {
   url: string;
@@ -365,6 +424,8 @@ export interface WidgetContent {
     columns: 2 | 3 | 4;
     gap: number;
   };
+  flexContainer?: FlexContainerContent;
+  smartGrid?: SmartGridContent;
   tabs?: {
     items: { label: string; content: string }[];
   };
@@ -461,6 +522,8 @@ export const WIDGET_LIBRARY: WidgetDefinition[] = [
   // Layout
   { type: 'container', label: 'Container', description: 'Section wrapper', icon: 'Square', category: 'layout' },
   { type: 'grid', label: 'Grid', description: 'Column layout', icon: 'Columns3', category: 'layout' },
+  { type: 'flex-container', label: 'Flex Container', description: 'Flexible box layout', icon: 'Box', category: 'layout' },
+  { type: 'smart-grid', label: 'Smart Grid', description: '2D grid with span controls', icon: 'Grid3x3', category: 'layout' },
   { type: 'tabs', label: 'Tabs', description: 'Tabbed content', icon: 'PanelTop', category: 'layout' },
   { type: 'accordion', label: 'Accordion', description: 'Collapsible panels', icon: 'ChevronDown', category: 'layout' },
   // Commerce & Marketing
@@ -596,6 +659,88 @@ export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
     }
   },
   grid: { grid: { columns: 3, gap: 16 } },
+  'flex-container': {
+    flexContainer: {
+      layout: {
+        direction: 'row',
+        wrap: 'wrap',
+        justifyContent: 'start',
+        alignItems: 'stretch',
+        alignContent: 'start',
+        gap: { desktop: 16, tablet: 12, mobile: 8 },
+      },
+      background: {
+        type: 'solid',
+        color: 'transparent',
+      },
+      border: {
+        style: 'none',
+        width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        color: '#e5e7eb',
+        radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+      },
+      shadow: {
+        enabled: false,
+        horizontal: 0,
+        vertical: 4,
+        blur: 6,
+        spread: 0,
+        color: 'rgba(0,0,0,0.1)',
+      },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+        maxWidth: 'lg',
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+      canvasInteraction: {
+        paddingHandles: true,
+        resizable: { width: true, height: false },
+      },
+    },
+  },
+  'smart-grid': {
+    smartGrid: {
+      layout: {
+        columns: { desktop: 4, tablet: 2, mobile: 1 },
+        rows: 'auto',
+        columnGap: { desktop: 20, tablet: 16, mobile: 12 },
+        rowGap: { desktop: 20, tablet: 16, mobile: 12 },
+        autoFlow: 'row',
+        justifyItems: 'stretch',
+        alignItems: 'stretch',
+      },
+      background: {
+        type: 'solid',
+        color: 'transparent',
+      },
+      border: {
+        style: 'none',
+        width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        color: '#e5e7eb',
+        radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+      },
+      shadow: {
+        enabled: false,
+        horizontal: 0,
+        vertical: 4,
+        blur: 6,
+        spread: 0,
+        color: 'rgba(0,0,0,0.1)',
+      },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+        maxWidth: 'lg',
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+      canvasInteraction: {
+        showColumnGuides: true,
+        gapHandles: true,
+        cellResizable: true,
+      },
+    },
+  },
   tabs: { tabs: { items: [{ label: 'Tab 1', content: 'Content for tab 1' }, { label: 'Tab 2', content: 'Content for tab 2' }] } },
   accordion: { accordion: { items: [{ title: 'Section 1', content: 'Content for section 1' }, { title: 'Section 2', content: 'Content for section 2' }] } },
   // Commerce
