@@ -93,7 +93,7 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
       case 'container':
         return <ContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'grid':
-        return <GridProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
+        return <GridProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'flex-container':
         return <FlexContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'smart-grid':
