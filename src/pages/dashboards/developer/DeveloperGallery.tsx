@@ -45,9 +45,21 @@ import {
   X,
   FolderInput,
   CheckSquare,
+  GripVertical,
 } from 'lucide-react';
 import { UploadDialog } from '@/components/gallery/UploadDialog';
 import { MoveToFolderDialog } from '@/components/gallery/MoveToFolderDialog';
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core';
 
 interface Shop {
   id: string;
@@ -74,6 +86,80 @@ interface MediaFile {
   created_at: string;
 }
 
+interface DragItem {
+  id: string;
+  type: 'folder' | 'file';
+  name: string;
+  data: MediaFolder | MediaFile;
+}
+
+// Draggable wrapper component
+function DraggableItem({ 
+  id, 
+  type, 
+  data, 
+  children, 
+  disabled 
+}: { 
+  id: string; 
+  type: 'folder' | 'file'; 
+  data: MediaFolder | MediaFile;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `${type}-${id}`,
+    data: { id, type, name: 'name' in data ? data.name : '', data },
+    disabled,
+  });
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      className="relative"
+    >
+      {!disabled && (
+        <div 
+          {...listeners} 
+          {...attributes}
+          className="absolute top-1 left-1 z-20 p-1 rounded bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// Droppable folder wrapper
+function DroppableFolder({ 
+  id, 
+  children,
+  disabled 
+}: { 
+  id: string; 
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `folder-drop-${id}`,
+    data: { folderId: id },
+    disabled,
+  });
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      className={`transition-all duration-200 ${isOver ? 'ring-2 ring-primary scale-105 bg-primary/10 rounded-lg' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+
 export default function DeveloperGallery() {
   const { user } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
@@ -98,6 +184,22 @@ export default function DeveloperGallery() {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
+
+  // Drag and drop state
+  const [activeDragItem, setActiveDragItem] = useState<DragItem | null>(null);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  const { setNodeRef: setRootDropRef, isOver: isOverRoot } = useDroppable({
+    id: 'root-drop-zone',
+    data: { folderId: null },
+  });
 
   useEffect(() => {
     fetchShops();
@@ -441,6 +543,67 @@ export default function DeveloperGallery() {
   const hasSelection = selectedFiles.size > 0 || selectedFolders.size > 0;
   const totalSelected = selectedFiles.size + selectedFolders.size;
 
+  // Drag handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const data = active.data.current as { id: string; type: 'folder' | 'file'; name: string; data: MediaFolder | MediaFile };
+    setActiveDragItem({
+      id: data.id,
+      type: data.type,
+      name: data.name,
+      data: data.data,
+    });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragItem(null);
+
+    if (!over) return;
+
+    const activeData = active.data.current as { id: string; type: 'folder' | 'file'; data: MediaFolder | MediaFile };
+    const overData = over.data.current as { folderId: string | null } | undefined;
+    
+    if (!overData) return;
+    
+    const targetFolderId = overData.folderId;
+    const draggedId = activeData.id;
+    const draggedType = activeData.type;
+
+    // Don't drop folder onto itself
+    if (draggedType === 'folder' && draggedId === targetFolderId) return;
+    
+    // Don't drop if already in the target folder
+    if (draggedType === 'folder') {
+      const folder = activeData.data as MediaFolder;
+      if (folder.parent_id === targetFolderId) return;
+    } else {
+      const file = activeData.data as MediaFile;
+      if (file.folder_id === targetFolderId) return;
+    }
+
+    try {
+      if (draggedType === 'file') {
+        const { error } = await supabase
+          .from('media_files')
+          .update({ folder_id: targetFolderId })
+          .eq('id', draggedId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('media_folders')
+          .update({ parent_id: targetFolderId })
+          .eq('id', draggedId);
+        if (error) throw error;
+      }
+      
+      toast.success(`Moved to ${targetFolderId ? 'folder' : 'root'}`);
+      fetchContent();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to move item');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -575,197 +738,235 @@ export default function DeveloperGallery() {
       </div>
 
       {/* Content Area */}
-      <div className="min-h-[400px] border rounded-lg">
-        {loading ? (
-          <div className="flex items-center justify-center h-[400px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : filteredFolders.length === 0 && filteredFiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
-            <ImageIcon className="h-12 w-12 mb-4" />
-            <p className="text-lg font-medium">No files or folders</p>
-            <p className="text-sm">Create a folder or upload images</p>
-          </div>
-        ) : (
-          <div className={`p-4 ${viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}`}>
-            {/* Folders */}
-            {filteredFolders.map(folder => {
-              const isSelected = selectedFolders.has(folder.id);
-              return (
-                <div
-                  key={folder.id}
-                  className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
-                >
-                  {selectionMode && (
-                    <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleFolderSelection(folder.id)}
-                      />
-                    </div>
-                  )}
-                  {viewMode === 'grid' ? (
-                    <Card
-                      className={`cursor-pointer transition-colors ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
-                      onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
-                    >
-                      <CardContent className="p-4 flex flex-col items-center">
-                        <Folder className="h-12 w-12 text-primary mb-2" />
-                        <p className="text-sm font-medium truncate w-full text-center">{folder.name}</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      <Folder className="h-5 w-5 text-primary" />
-                      <span
-                        className="flex-1 cursor-pointer hover:text-primary"
-                        onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div 
+          ref={setRootDropRef}
+          className={`min-h-[400px] border rounded-lg transition-colors ${isOverRoot && activeDragItem ? 'border-primary border-dashed bg-primary/5' : ''}`}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center h-[400px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : filteredFolders.length === 0 && filteredFiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+              <ImageIcon className="h-12 w-12 mb-4" />
+              <p className="text-lg font-medium">No files or folders</p>
+              <p className="text-sm">Create a folder or upload images</p>
+            </div>
+          ) : (
+            <div className={`p-4 ${viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}`}>
+              {/* Folders */}
+              {filteredFolders.map(folder => {
+                const isSelected = selectedFolders.has(folder.id);
+                return (
+                  <DroppableFolder key={folder.id} id={folder.id} disabled={selectionMode}>
+                    <DraggableItem id={folder.id} type="folder" data={folder} disabled={selectionMode}>
+                      <div
+                        className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
                       >
-                        {folder.name}
-                      </span>
-                    </>
-                  )}
-                  {!selectionMode && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={`${viewMode === 'grid' ? 'absolute top-1 right-1 opacity-0 group-hover:opacity-100' : ''}`}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {
-                          setRenamingFolder(folder);
-                          setNewFolderName(folder.name);
-                        }}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => deleteFolder(folder)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Files */}
-            {filteredFiles.map(file => {
-              const isSelected = selectedFiles.has(file.id);
-              return (
-                <div
-                  key={file.id}
-                  className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
-                >
-                  {selectionMode && (
-                    <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleFileSelection(file.id)}
-                      />
-                    </div>
-                  )}
-                  {viewMode === 'grid' ? (
-                    <Card 
-                      className={`cursor-pointer transition-colors overflow-hidden ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
-                      onClick={() => selectionMode && toggleFileSelection(file.id)}
-                    >
-                      <CardContent className="p-0 relative">
-                        <img
-                          src={file.file_url}
-                          alt={file.name}
-                          className="w-full h-32 object-cover"
-                        />
-                        {!selectionMode && (
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-white hover:bg-white/20"
-                              onClick={(e) => { e.stopPropagation(); copyLink(file.file_url); }}
-                            >
-                              <Copy className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-white hover:bg-white/20"
-                              onClick={(e) => { e.stopPropagation(); setPreviewImage(file); }}
-                            >
-                              <Eye className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-white hover:bg-white/20"
-                              onClick={(e) => { e.stopPropagation(); deleteFile(file); }}
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </Button>
+                        {selectionMode && (
+                          <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleFolderSelection(folder.id)}
+                            />
                           </div>
                         )}
-                        <div className="p-2">
-                          <p className="text-xs truncate">{file.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      <img
-                        src={file.file_url}
-                        alt={file.name}
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                      <div 
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => selectionMode && toggleFileSelection(file.id)}
-                      >
-                        <p className="text-sm truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                        {viewMode === 'grid' ? (
+                          <Card
+                            className={`cursor-pointer transition-colors ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
+                            onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
+                          >
+                            <CardContent className="p-4 flex flex-col items-center">
+                              <Folder className="h-12 w-12 text-primary mb-2" />
+                              <p className="text-sm font-medium truncate w-full text-center">{folder.name}</p>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <>
+                            <Folder className="h-5 w-5 text-primary" />
+                            <span
+                              className="flex-1 cursor-pointer hover:text-primary"
+                              onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
+                            >
+                              {folder.name}
+                            </span>
+                          </>
+                        )}
+                        {!selectionMode && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`${viewMode === 'grid' ? 'absolute top-1 right-1 opacity-0 group-hover:opacity-100' : ''} z-10`}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setRenamingFolder(folder);
+                                setNewFolderName(folder.name);
+                              }}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => deleteFolder(folder)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
-                      {!selectionMode && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => copyLink(file.file_url)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setPreviewImage(file)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteFile(file)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                    </DraggableItem>
+                  </DroppableFolder>
+                );
+              })}
+
+              {/* Files */}
+              {filteredFiles.map(file => {
+                const isSelected = selectedFiles.has(file.id);
+                return (
+                  <DraggableItem key={file.id} id={file.id} type="file" data={file} disabled={selectionMode}>
+                    <div
+                      className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
+                    >
+                      {selectionMode && (
+                        <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleFileSelection(file.id)}
+                          />
                         </div>
                       )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                      {viewMode === 'grid' ? (
+                        <Card 
+                          className={`cursor-pointer transition-colors overflow-hidden ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
+                          onClick={() => selectionMode && toggleFileSelection(file.id)}
+                        >
+                          <CardContent className="p-0 relative">
+                            <img
+                              src={file.file_url}
+                              alt={file.name}
+                              className="w-full h-32 object-cover"
+                            />
+                            {!selectionMode && (
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-white hover:bg-white/20"
+                                  onClick={(e) => { e.stopPropagation(); copyLink(file.file_url); }}
+                                >
+                                  <Copy className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-white hover:bg-white/20"
+                                  onClick={(e) => { e.stopPropagation(); setPreviewImage(file); }}
+                                >
+                                  <Eye className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-white hover:bg-white/20"
+                                  onClick={(e) => { e.stopPropagation(); deleteFile(file); }}
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="p-2">
+                              <p className="text-xs truncate">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <>
+                          <img
+                            src={file.file_url}
+                            alt={file.name}
+                            className="w-10 h-10 object-cover rounded"
+                          />
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => selectionMode && toggleFileSelection(file.id)}
+                          >
+                            <p className="text-sm truncate">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                          </div>
+                          {!selectionMode && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => copyLink(file.file_url)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPreviewImage(file)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteFile(file)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </DraggableItem>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeDragItem && (
+            <Card className="opacity-90 shadow-lg">
+              <CardContent className="p-3 flex items-center gap-2">
+                {activeDragItem.type === 'folder' ? (
+                  <>
+                    <Folder className="h-5 w-5 text-primary" />
+                    <span className="text-sm font-medium">{activeDragItem.name || (activeDragItem.data as MediaFolder).name}</span>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src={(activeDragItem.data as MediaFile).file_url} 
+                      alt="" 
+                      className="h-8 w-8 object-cover rounded" 
+                    />
+                    <span className="text-sm truncate max-w-[150px]">{(activeDragItem.data as MediaFile).name}</span>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {/* Create Folder Dialog - Fixed with autoFocus and path indicator */}
       <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
