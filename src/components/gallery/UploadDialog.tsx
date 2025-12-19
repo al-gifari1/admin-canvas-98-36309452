@@ -100,6 +100,9 @@ export function UploadDialog({ open, onOpenChange, onUpload }: UploadDialogProps
     
     setIsUploading(true);
     const filesToProcess = [...filesToUpload];
+    
+    // Use local Map to track optimized results instead of relying on async React state
+    const optimizedResults = new Map<string, OptimizedImage>();
 
     try {
       // Process files (optimize if enabled)
@@ -111,6 +114,7 @@ export function UploadDialog({ open, onOpenChange, onUpload }: UploadDialogProps
           
           try {
             const optimized = await optimizeImage(fileItem.file);
+            optimizedResults.set(fileItem.id, optimized);
             setFilesToUpload(prev => 
               prev.map(f => f.id === fileItem.id ? { ...f, optimized, progress: 50 } : f)
             );
@@ -121,19 +125,19 @@ export function UploadDialog({ open, onOpenChange, onUpload }: UploadDialogProps
         }
       }
 
-      // Get updated files with optimizations
-      const currentFiles = filesToUpload;
-      
       // Mark as uploading
       setFilesToUpload(prev => 
         prev.map(f => ({ ...f, status: 'uploading', progress: 60 }))
       );
 
-      // Prepare files for upload
-      const uploadFiles = currentFiles.map(f => ({
-        file: f.optimized?.blob || f.file,
-        name: f.optimized?.fileName || f.file.name,
-      }));
+      // Prepare files for upload using local Map (not stale React state)
+      const uploadFiles = filesToProcess.map(f => {
+        const optimized = optimizedResults.get(f.id);
+        return {
+          file: optimized?.blob || f.file,
+          name: optimized?.fileName || f.file.name,
+        };
+      });
 
       await onUpload(uploadFiles);
 
