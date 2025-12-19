@@ -172,9 +172,11 @@ function buildResponsiveClasses(heading: HeadingContent): string {
 
 interface WidgetRendererProps {
   block: Block;
+  isSelected?: boolean;
+  onContentChange?: (content: Partial<Block['content']>) => void;
 }
 
-export function WidgetRenderer({ block }: WidgetRendererProps) {
+export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRendererProps) {
   switch (block.type) {
     case 'heading': {
       const heading = block.content.heading as HeadingContent | undefined;
@@ -687,10 +689,22 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
       );
     }
     case 'flex-container': {
-      return <FlexContainerRenderer block={block} />;
+      return (
+        <FlexContainerRenderer 
+          block={block} 
+          isSelected={isSelected}
+          onContentChange={onContentChange ? (content) => onContentChange({ flexContainer: content as FlexContainerContent }) : undefined}
+        />
+      );
     }
     case 'smart-grid': {
-      return <SmartGridRenderer block={block} />;
+      return (
+        <SmartGridRenderer 
+          block={block}
+          isSelected={isSelected}
+          onContentChange={onContentChange ? (content) => onContentChange({ smartGrid: content as SmartGridContent }) : undefined}
+        />
+      );
     }
     case 'grid': {
       const { columns, gap } = block.content.grid || { columns: 3, gap: 16 };

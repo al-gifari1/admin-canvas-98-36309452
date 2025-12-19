@@ -64,6 +64,7 @@ interface BuilderCanvasProps {
   onDuplicateBlock?: (id: string) => void;
   onAddBlock?: (type: WidgetType, index: number) => void;
   onImportBlocks?: (blocks: Block[], index: number) => void;
+  onUpdateBlockContent?: (blockId: string, content: Partial<Block['content']>) => void;
   viewMode: 'mobile' | 'desktop';
 }
 
@@ -73,12 +74,14 @@ function SortableBlock({
   onSelect,
   onDelete,
   onDuplicate,
+  onContentChange,
 }: {
   block: Block;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate?: () => void;
+  onContentChange?: (content: Partial<Block['content']>) => void;
 }) {
   const {
     attributes,
@@ -164,9 +167,13 @@ function SortableBlock({
         </div>
       </div>
 
-      {/* Widget content */}
-      <div className="pointer-events-none">
-        <WidgetRenderer block={block} />
+      {/* Widget content - allow pointer events on selected blocks for handles */}
+      <div className={isSelected ? 'relative' : 'pointer-events-none'}>
+        <WidgetRenderer 
+          block={block} 
+          isSelected={isSelected}
+          onContentChange={onContentChange}
+        />
       </div>
     </div>
   );
@@ -453,6 +460,7 @@ export function BuilderCanvas({
   onDuplicateBlock,
   onAddBlock,
   onImportBlocks,
+  onUpdateBlockContent,
   viewMode,
 }: BuilderCanvasProps) {
   const { setNodeRef, isOver } = useDroppable({
@@ -574,6 +582,7 @@ export function BuilderCanvas({
                         onSelect={() => onSelectBlock(block.id)}
                         onDelete={() => handleDeleteClick(block.id)}
                         onDuplicate={onDuplicateBlock ? () => onDuplicateBlock(block.id) : undefined}
+                        onContentChange={onUpdateBlockContent ? (content) => onUpdateBlockContent(block.id, content) : undefined}
                       />
                     </div>
                   ))}

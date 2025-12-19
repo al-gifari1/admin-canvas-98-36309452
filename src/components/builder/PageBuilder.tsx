@@ -208,6 +208,17 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
     );
   }, []);
 
+  // Partial content update for canvas interactions (padding handles, gap handles, etc.)
+  const handleUpdateBlockContent = useCallback((blockId: string, partialContent: Partial<Block['content']>) => {
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId 
+          ? { ...block, content: { ...block.content, ...partialContent } } 
+          : block
+      )
+    );
+  }, []);
+
   const handleSave = async () => {
     if (!page) return;
 
@@ -386,6 +397,7 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
             }}
             onAddBlock={handleAddBlock}
             onImportBlocks={handleImportBlocks}
+            onUpdateBlockContent={handleUpdateBlockContent}
             viewMode={viewMode}
           />
 
