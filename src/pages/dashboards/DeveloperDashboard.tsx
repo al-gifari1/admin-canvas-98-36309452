@@ -5,6 +5,7 @@ import { DeveloperOverview } from './developer/DeveloperOverview';
 import { DeveloperClients } from './developer/DeveloperClients';
 import { DeveloperLandingPages } from './developer/DeveloperLandingPages';
 import { DeveloperProducts } from './developer/DeveloperProducts';
+import { DeveloperStockInventory } from './developer/DeveloperStockInventory';
 import { DeveloperTracking } from './developer/DeveloperTracking';
 import { DeveloperCheckout } from './developer/DeveloperCheckout';
 import { DeveloperReports } from './developer/DeveloperReports';
@@ -56,7 +57,8 @@ export default function DeveloperDashboard() {
         return <DeveloperLandingPages onNavigate={handleTabChange} />;
       case 'products':
         return <DeveloperProducts />;
-      case 'tracking':
+      case 'stock-inventory':
+        return <DeveloperStockInventory />;
         return <DeveloperTracking />;
       case 'checkout':
         return <DeveloperCheckout />;

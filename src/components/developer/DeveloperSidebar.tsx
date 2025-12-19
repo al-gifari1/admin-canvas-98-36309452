@@ -51,7 +51,6 @@ import { CreateLandingPageDialog } from './CreateLandingPageDialog';
 const menuItems = [
   { id: 'overview', title: 'Overview', icon: LayoutDashboard },
   { id: 'clients', title: 'Clients', icon: Users },
-  { id: 'products', title: 'Products', icon: Package },
   { id: 'tracking', title: 'Tracking', icon: Target },
   { id: 'checkout', title: 'Checkout', icon: CreditCard },
   { id: 'reports', title: 'Reports', icon: BarChart3 },
@@ -69,6 +68,9 @@ export function DeveloperSidebar({ activeTab, onTabChange }: DeveloperSidebarPro
   const [landingPagesOpen, setLandingPagesOpen] = useState(
     activeTab === 'landing-pages' || activeTab === 'section-library' || activeTab === 'builder'
   );
+  const [productsOpen, setProductsOpen] = useState(
+    activeTab === 'products' || activeTab === 'stock-inventory'
+  );
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const getInitials = (email: string) => {
@@ -76,6 +78,7 @@ export function DeveloperSidebar({ activeTab, onTabChange }: DeveloperSidebarPro
   };
 
   const isLandingPagesActive = activeTab === 'landing-pages' || activeTab === 'section-library' || activeTab === 'builder';
+  const isProductsActive = activeTab === 'products' || activeTab === 'stock-inventory';
 
   const handlePageCreated = (pageId: string) => {
     onTabChange(`builder:${pageId}`);
@@ -162,6 +165,50 @@ export function DeveloperSidebar({ activeTab, onTabChange }: DeveloperSidebarPro
                           >
                             <Layers className="h-4 w-4" />
                             <span>Section Library</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+
+                {/* Products Collapsible Menu */}
+                <Collapsible
+                  open={productsOpen}
+                  onOpenChange={setProductsOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        isActive={isProductsActive}
+                        tooltip="Products"
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Products</span>
+                        {!isCollapsed && (
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        )}
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => onTabChange('products')}
+                            isActive={activeTab === 'products'}
+                          >
+                            <List className="h-4 w-4" />
+                            <span>Manage Products</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => onTabChange('stock-inventory')}
+                            isActive={activeTab === 'stock-inventory'}
+                          >
+                            <BarChart3 className="h-4 w-4" />
+                            <span>Stock & Inventory</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       </SidebarMenuSub>

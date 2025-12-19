@@ -291,51 +291,140 @@ export type Database = {
           },
         ]
       }
-      products: {
+      product_categories: {
         Row: {
           created_at: string | null
           created_by: string
+          id: string
+          name: string
+          parent_id: string | null
+          shop_id: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          shop_id: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          shop_id?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          brand: string | null
+          category: string | null
+          cost_price: number | null
+          created_at: string | null
+          created_by: string
+          current_stock: number | null
           description: string | null
+          discount_percentage: number | null
+          discount_price: number | null
           download_url: string | null
           gallery_images: Json | null
           id: string
           is_active: boolean | null
+          long_description: string | null
+          low_stock_threshold: number | null
+          main_image: string | null
           name: string
+          owner_type: string | null
           price: number
           product_type: string
           shop_id: string
+          short_description: string | null
+          sku: string | null
+          slug: string | null
+          stock_unit: string | null
+          tags: string[] | null
+          track_inventory: boolean | null
           updated_at: string | null
           version: number | null
           weight: number | null
         }
         Insert: {
+          brand?: string | null
+          category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           created_by: string
+          current_stock?: number | null
           description?: string | null
+          discount_percentage?: number | null
+          discount_price?: number | null
           download_url?: string | null
           gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
+          long_description?: string | null
+          low_stock_threshold?: number | null
+          main_image?: string | null
           name: string
+          owner_type?: string | null
           price?: number
           product_type?: string
           shop_id: string
+          short_description?: string | null
+          sku?: string | null
+          slug?: string | null
+          stock_unit?: string | null
+          tags?: string[] | null
+          track_inventory?: boolean | null
           updated_at?: string | null
           version?: number | null
           weight?: number | null
         }
         Update: {
+          brand?: string | null
+          category?: string | null
+          cost_price?: number | null
           created_at?: string | null
           created_by?: string
+          current_stock?: number | null
           description?: string | null
+          discount_percentage?: number | null
+          discount_price?: number | null
           download_url?: string | null
           gallery_images?: Json | null
           id?: string
           is_active?: boolean | null
+          long_description?: string | null
+          low_stock_threshold?: number | null
+          main_image?: string | null
           name?: string
+          owner_type?: string | null
           price?: number
           product_type?: string
           shop_id?: string
+          short_description?: string | null
+          sku?: string | null
+          slug?: string | null
+          stock_unit?: string | null
+          tags?: string[] | null
+          track_inventory?: boolean | null
           updated_at?: string | null
           version?: number | null
           weight?: number | null
@@ -500,6 +589,65 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          cost_price: number | null
+          created_at: string | null
+          done_by: string
+          id: string
+          invoice_no: string | null
+          new_stock: number
+          notes: string | null
+          previous_stock: number
+          product_id: string
+          quantity: number
+          shop_id: string
+          source: string | null
+          supplier: string | null
+          type: string
+        }
+        Insert: {
+          cost_price?: number | null
+          created_at?: string | null
+          done_by: string
+          id?: string
+          invoice_no?: string | null
+          new_stock: number
+          notes?: string | null
+          previous_stock: number
+          product_id: string
+          quantity: number
+          shop_id: string
+          source?: string | null
+          supplier?: string | null
+          type: string
+        }
+        Update: {
+          cost_price?: number | null
+          created_at?: string | null
+          done_by?: string
+          id?: string
+          invoice_no?: string | null
+          new_stock?: number
+          notes?: string | null
+          previous_stock?: number
+          product_id?: string
+          quantity?: number
+          shop_id?: string
+          source?: string | null
+          supplier?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
