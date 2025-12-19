@@ -124,7 +124,8 @@ export function CreateCheckoutProfileDialog({
           free_shipping_threshold: profile.free_shipping_threshold?.toString() || '',
           payment_methods: profile.payment_methods || { ...defaultPaymentMethods },
         });
-        // TODO: Load selected products for edit mode if needed
+        // Load selected products for edit mode
+        setSelectedProductIds((profile as any).product_ids || []);
       } else {
         resetForm();
         setSelectedProductIds([]);
@@ -279,6 +280,7 @@ export function CreateCheckoutProfileDialog({
           ? parseFloat(formData.free_shipping_threshold) 
           : null,
         payment_methods: JSON.parse(JSON.stringify(formData.payment_methods)),
+        product_ids: selectedProductIds,
         created_by: user?.id,
       };
 
