@@ -58,7 +58,7 @@ interface MediaFolder {
   id: string;
   name: string;
   parent_id: string | null;
-  shop_id: string;
+  shop_id: string | null;
   created_at: string;
 }
 
@@ -70,14 +70,14 @@ interface MediaFile {
   file_size: number | null;
   mime_type: string | null;
   folder_id: string | null;
-  shop_id: string;
+  shop_id: string | null;
   created_at: string;
 }
 
 export default function DeveloperGallery() {
   const { user } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
-  const [selectedShopId, setSelectedShopId] = useState<string>('');
+  const [selectedShopId, setSelectedShopId] = useState<string>('my-files'); // 'my-files' for personal space
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -104,12 +104,10 @@ export default function DeveloperGallery() {
   }, [user]);
 
   useEffect(() => {
-    if (selectedShopId) {
-      fetchContent();
-      // Clear selection when navigating
-      setSelectedFiles(new Set());
-      setSelectedFolders(new Set());
-    }
+    fetchContent();
+    // Clear selection when navigating
+    setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
   }, [selectedShopId, currentFolderId]);
 
   // Reset folder name when dialog opens
@@ -128,35 +126,50 @@ export default function DeveloperGallery() {
         .order('name');
       if (error) throw error;
       setShops(data || []);
-      if (data && data.length > 0) {
-        setSelectedShopId(data[0].id);
-      }
     } catch (error) {
       console.error('Error fetching shops:', error);
     }
   };
 
   const fetchContent = async () => {
-    if (!selectedShopId) return;
+    if (!user) return;
     setLoading(true);
     try {
-      const { data: foldersData, error: foldersError } = await supabase
-        .from('media_folders')
-        .select('*')
-        .eq('shop_id', selectedShopId)
-        .eq('parent_id', currentFolderId || null)
-        .order('name');
-
+      const isMyFiles = selectedShopId === 'my-files';
+      
+      // Fetch folders
+      let foldersQuery = supabase.from('media_folders').select('*');
+      if (isMyFiles) {
+        foldersQuery = foldersQuery.is('shop_id', null).eq('created_by', user.id);
+      } else {
+        foldersQuery = foldersQuery.eq('shop_id', selectedShopId);
+      }
+      
+      if (currentFolderId) {
+        foldersQuery = foldersQuery.eq('parent_id', currentFolderId);
+      } else {
+        foldersQuery = foldersQuery.is('parent_id', null);
+      }
+      
+      const { data: foldersData, error: foldersError } = await foldersQuery.order('name');
       if (foldersError) throw foldersError;
       setFolders(foldersData || []);
 
-      const { data: filesData, error: filesError } = await supabase
-        .from('media_files')
-        .select('*')
-        .eq('shop_id', selectedShopId)
-        .eq('folder_id', currentFolderId || null)
-        .order('created_at', { ascending: false });
-
+      // Fetch files
+      let filesQuery = supabase.from('media_files').select('*');
+      if (isMyFiles) {
+        filesQuery = filesQuery.is('shop_id', null).eq('created_by', user.id);
+      } else {
+        filesQuery = filesQuery.eq('shop_id', selectedShopId);
+      }
+      
+      if (currentFolderId) {
+        filesQuery = filesQuery.eq('folder_id', currentFolderId);
+      } else {
+        filesQuery = filesQuery.is('folder_id', null);
+      }
+      
+      const { data: filesData, error: filesError } = await filesQuery.order('created_at', { ascending: false });
       if (filesError) throw filesError;
       setFiles(filesData || []);
     } catch (error) {
@@ -189,13 +202,15 @@ export default function DeveloperGallery() {
   };
 
   const createFolder = async () => {
-    if (!newFolderName.trim() || !selectedShopId || !user) return;
+    if (!newFolderName.trim() || !user) return;
+    
+    const isMyFiles = selectedShopId === 'my-files';
     
     try {
       const { error } = await supabase.from('media_folders').insert({
         name: newFolderName.trim(),
         parent_id: currentFolderId,
-        shop_id: selectedShopId,
+        shop_id: isMyFiles ? null : selectedShopId,
         created_by: user.id,
       });
 
@@ -246,13 +261,16 @@ export default function DeveloperGallery() {
   };
 
   const handleUpload = async (filesToUpload: { file: File | Blob; name: string }[]) => {
-    if (!selectedShopId || !user) return;
+    if (!user) return;
+
+    const isMyFiles = selectedShopId === 'my-files';
+    const storagePath = isMyFiles ? `developer-${user.id}` : selectedShopId;
 
     try {
       for (const { file, name } of filesToUpload) {
         const fileExt = name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${selectedShopId}/${currentFolderId || 'root'}/${fileName}`;
+        const filePath = `${storagePath}/${currentFolderId || 'root'}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('builder-assets')
@@ -271,7 +289,7 @@ export default function DeveloperGallery() {
           file_size: file instanceof File ? file.size : (file as Blob).size,
           mime_type: file instanceof File ? file.type : 'image/webp',
           folder_id: currentFolderId,
-          shop_id: selectedShopId,
+          shop_id: isMyFiles ? null : selectedShopId,
           created_by: user.id,
         });
 
@@ -423,32 +441,6 @@ export default function DeveloperGallery() {
   const hasSelection = selectedFiles.size > 0 || selectedFolders.size > 0;
   const totalSelected = selectedFiles.size + selectedFolders.size;
 
-  // Show message if no shops available
-  if (shops.length === 0 && !loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Gallery</h1>
-          <p className="text-muted-foreground">Manage your media files and folders</p>
-        </div>
-        <Card className="p-8">
-          <div className="flex flex-col items-center justify-center text-center space-y-4">
-            <ImageIcon className="h-16 w-16 text-muted-foreground" />
-            <div>
-              <h2 className="text-lg font-semibold">No Shops Available</h2>
-              <p className="text-muted-foreground mt-1">
-                You need to create a shop and get assigned to it before using the Gallery.
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Go to <strong>Clients</strong> section to create a shop owner and shop first.
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -457,14 +449,24 @@ export default function DeveloperGallery() {
           <p className="text-muted-foreground">Manage your media files and folders</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={selectedShopId} onValueChange={setSelectedShopId}>
+          <Select value={selectedShopId} onValueChange={(value) => {
+            setSelectedShopId(value);
+            setCurrentFolderId(null);
+            setFolderPath([]);
+          }}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select shop" />
+              <SelectValue placeholder="Select space" />
             </SelectTrigger>
             <SelectContent>
-              {shops.map(shop => (
-                <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
-              ))}
+              <SelectItem value="my-files">📁 My Files</SelectItem>
+              {shops.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Shops</div>
+                  {shops.map(shop => (
+                    <SelectItem key={shop.id} value={shop.id}>{shop.name}</SelectItem>
+                  ))}
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -874,6 +876,7 @@ export default function DeveloperGallery() {
         selectedCount={totalSelected}
         onMove={handleMoveItems}
         excludeFolderIds={Array.from(selectedFolders)}
+        userId={user?.id}
       />
     </div>
   );
