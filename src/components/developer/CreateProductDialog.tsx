@@ -155,7 +155,7 @@ export function CreateProductDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.shop_id) {
+    if (!formData.name || !formData.price) {
       toast.error('Please fill in required fields');
       return;
     }
@@ -175,7 +175,7 @@ export function CreateProductDialog({
         price: parseFloat(formData.price) || 0,
         sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
         main_image: formData.main_image || null,
-        shop_id: formData.shop_id,
+        shop_id: formData.shop_id || null,
         product_type: formData.product_type,
         sizes: sizesArray,
         download_url: formData.product_type === 'digital' ? formData.download_url : null,
@@ -226,7 +226,7 @@ export function CreateProductDialog({
           <div className="grid gap-4">
             {/* Shop Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="shop">Shop *</Label>
+              <Label htmlFor="shop">Shop</Label>
               <Select 
                 value={formData.shop_id} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, shop_id: value }))}
