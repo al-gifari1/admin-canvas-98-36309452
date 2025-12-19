@@ -79,34 +79,52 @@ export type Database = {
       }
       checkout_profiles: {
         Row: {
+          address_enabled: boolean | null
+          city_enabled: boolean | null
           created_at: string | null
           created_by: string
           enabled_fields: Json | null
+          free_shipping_enabled: boolean | null
+          free_shipping_threshold: number | null
           id: string
           name: string
+          notes_enabled: boolean | null
           payment_methods: Json | null
+          shipping_rules: Json | null
           shop_id: string
           updated_at: string | null
           version: number | null
         }
         Insert: {
+          address_enabled?: boolean | null
+          city_enabled?: boolean | null
           created_at?: string | null
           created_by: string
           enabled_fields?: Json | null
+          free_shipping_enabled?: boolean | null
+          free_shipping_threshold?: number | null
           id?: string
           name: string
+          notes_enabled?: boolean | null
           payment_methods?: Json | null
+          shipping_rules?: Json | null
           shop_id: string
           updated_at?: string | null
           version?: number | null
         }
         Update: {
+          address_enabled?: boolean | null
+          city_enabled?: boolean | null
           created_at?: string | null
           created_by?: string
           enabled_fields?: Json | null
+          free_shipping_enabled?: boolean | null
+          free_shipping_threshold?: number | null
           id?: string
           name?: string
+          notes_enabled?: boolean | null
           payment_methods?: Json | null
+          shipping_rules?: Json | null
           shop_id?: string
           updated_at?: string | null
           version?: number | null
@@ -453,8 +471,10 @@ export type Database = {
           owner_type: string | null
           price: number
           product_type: string
+          sale_price: number | null
           shop_id: string
           short_description: string | null
+          sizes: string[] | null
           sku: string | null
           slug: string | null
           stock_unit: string | null
@@ -485,8 +505,10 @@ export type Database = {
           owner_type?: string | null
           price?: number
           product_type?: string
+          sale_price?: number | null
           shop_id: string
           short_description?: string | null
+          sizes?: string[] | null
           sku?: string | null
           slug?: string | null
           stock_unit?: string | null
@@ -517,8 +539,10 @@ export type Database = {
           owner_type?: string | null
           price?: number
           product_type?: string
+          sale_price?: number | null
           shop_id?: string
           short_description?: string | null
+          sizes?: string[] | null
           sku?: string | null
           slug?: string | null
           stock_unit?: string | null

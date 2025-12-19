@@ -48,6 +48,7 @@ interface Product {
   sku: string | null;
   slug: string | null;
   price: number;
+  sale_price: number | null;
   cost_price: number;
   discount_price: number | null;
   discount_percentage: number | null;
@@ -65,6 +66,7 @@ interface Product {
   track_inventory: boolean;
   stock_unit: string;
   owner_type: string;
+  product_type: string;
   shop_id: string;
   created_by: string;
   shop?: { name: string };
@@ -352,9 +354,9 @@ export function DeveloperProducts() {
                     </TableHead>
                     <TableHead className="w-16">Image</TableHead>
                     <TableHead>Product</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Stock</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
                     <TableHead className="w-20">Status</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -386,27 +388,24 @@ export function DeveloperProducts() {
                       <TableCell>
                         <div>
                           <p className="font-medium">{product.name}</p>
-                          {product.sku && (
-                            <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+                          {product.shop && (
+                            <p className="text-xs text-muted-foreground">{product.shop.name}</p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={product.owner_type === 'developer' ? 'default' : 'secondary'}>
-                          {product.owner_type === 'developer' ? 'My Product' : 'Client'}
+                        <Badge variant={product.product_type === 'digital' ? 'secondary' : 'outline'}>
+                          {product.product_type === 'digital' ? 'Digital' : 'Physical'}
                         </Badge>
-                        {product.shop && (
-                          <p className="text-xs text-muted-foreground mt-1">{product.shop.name}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">৳{product.price.toLocaleString()}</p>
+                        {product.sale_price && (
+                          <p className="text-xs text-emerald-600">Sale: ৳{product.sale_price.toLocaleString()}</p>
                         )}
                       </TableCell>
                       <TableCell>
                         {getStockBadge(product)}
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium">৳{product.price.toLocaleString()}</p>
-                        {product.cost_price > 0 && (
-                          <p className="text-xs text-muted-foreground">Cost: ৳{product.cost_price.toLocaleString()}</p>
-                        )}
                       </TableCell>
                       <TableCell>
                         <Switch
