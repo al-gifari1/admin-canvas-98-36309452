@@ -131,6 +131,92 @@ export interface HeadingContent {
   advanced: HeadingAdvanced;
 }
 
+// Container/Grid specific types
+export interface ContainerLayout {
+  displayType: 'flex' | 'grid';
+  columns: ResponsiveValue;
+  rows: 'auto' | number;
+  columnGap: ResponsiveValue;
+  rowGap: ResponsiveValue;
+  justifyItems: 'start' | 'center' | 'end' | 'stretch';
+  alignItems: 'start' | 'center' | 'end' | 'stretch';
+  justifyContent: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+  alignContent: 'start' | 'center' | 'end' | 'stretch' | 'between' | 'around';
+}
+
+export interface ContainerBackground {
+  type: 'solid' | 'gradient' | 'image';
+  color?: string;
+  gradient?: {
+    type: 'linear' | 'radial';
+    angle?: number;
+    stops: { color: string; position: number }[];
+  };
+  image?: {
+    url: string;
+    size: 'cover' | 'contain' | 'repeat';
+    position: string;
+  };
+}
+
+export interface ContainerBorder {
+  style: 'none' | 'solid' | 'dashed' | 'dotted';
+  width: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  color: string;
+  radius: { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number; linked: boolean };
+}
+
+export interface ContainerShadow {
+  enabled: boolean;
+  horizontal: number;
+  vertical: number;
+  blur: number;
+  spread: number;
+  color: string;
+}
+
+export interface ContainerShapeDivider {
+  enabled: boolean;
+  position: 'top' | 'bottom';
+  shape: 'waves' | 'curves' | 'triangle' | 'tilt';
+  color: string;
+  height: number;
+  flip: boolean;
+}
+
+export interface ContainerAdvanced {
+  margin: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  padding: { top: number; right: number; bottom: number; left: number; linked: boolean };
+  zIndex?: number;
+  cssId?: string;
+  cssClasses?: string;
+  responsive: {
+    hideOnDesktop: boolean;
+    hideOnTablet: boolean;
+    hideOnMobile: boolean;
+  };
+  minHeight?: ResponsiveValue;
+  maxWidth: 'full' | 'lg' | 'md' | 'sm' | 'custom';
+  customMaxWidth?: number;
+}
+
+export interface ContainerContent {
+  layout: ContainerLayout;
+  background: ContainerBackground;
+  border: ContainerBorder;
+  shadow: ContainerShadow;
+  shapeDivider?: ContainerShapeDivider;
+  advanced: ContainerAdvanced;
+}
+
+// Grid item settings for child widgets
+export interface GridItemSettings {
+  columnSpan: ResponsiveValue;
+  rowSpan: ResponsiveValue;
+  alignSelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+  justifySelf: 'auto' | 'start' | 'center' | 'end' | 'stretch';
+}
+
 // Button specific types
 export interface ButtonLink {
   url: string;
@@ -263,11 +349,7 @@ export interface WidgetContent {
     interval: number;
   };
   // Layout
-  container?: {
-    backgroundColor: string;
-    padding: number;
-    maxWidth: 'full' | 'lg' | 'md' | 'sm';
-  };
+  container?: ContainerContent;
   grid?: {
     columns: 2 | 3 | 4;
     gap: number;
@@ -463,7 +545,45 @@ export const DEFAULT_WIDGET_CONTENT: Record<WidgetType, WidgetContent> = {
   gallery: { gallery: { images: [{ url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', alt: 'Image 1' }, { url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400', alt: 'Image 2' }, { url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', alt: 'Image 3' }], columns: 3 } },
   slider: { slider: { slides: [{ imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', title: 'Slide 1', description: 'Description' }], autoplay: true, interval: 5000 } },
   // Layout
-  container: { container: { backgroundColor: 'transparent', padding: 16, maxWidth: 'lg' } },
+  container: { 
+    container: {
+      layout: {
+        displayType: 'grid',
+        columns: { desktop: 4, tablet: 2, mobile: 1 },
+        rows: 'auto',
+        columnGap: { desktop: 20, tablet: 16, mobile: 12 },
+        rowGap: { desktop: 20, tablet: 16, mobile: 12 },
+        justifyItems: 'stretch',
+        alignItems: 'stretch',
+        justifyContent: 'start',
+        alignContent: 'start',
+      },
+      background: {
+        type: 'solid',
+        color: 'transparent',
+      },
+      border: {
+        style: 'none',
+        width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        color: '#e5e7eb',
+        radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+      },
+      shadow: {
+        enabled: false,
+        horizontal: 0,
+        vertical: 4,
+        blur: 6,
+        spread: 0,
+        color: 'rgba(0,0,0,0.1)',
+      },
+      advanced: {
+        margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+        padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+        maxWidth: 'lg',
+        responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+      },
+    }
+  },
   grid: { grid: { columns: 3, gap: 16 } },
   tabs: { tabs: { items: [{ label: 'Tab 1', content: 'Content for tab 1' }, { label: 'Tab 2', content: 'Content for tab 2' }] } },
   accordion: { accordion: { items: [{ title: 'Section 1', content: 'Content for section 1' }, { title: 'Section 2', content: 'Content for section 2' }] } },
