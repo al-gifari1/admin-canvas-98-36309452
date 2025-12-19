@@ -185,6 +185,14 @@ export default function DeveloperGallery() {
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
 
+  // Delete confirmation state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    type: 'file' | 'folder' | 'bulk';
+    item?: MediaFile | MediaFolder;
+    count?: number;
+  }>({ open: false, type: 'file' });
+
   // Drag and drop state
   const [activeDragItem, setActiveDragItem] = useState<DragItem | null>(null);
   
@@ -345,9 +353,11 @@ export default function DeveloperGallery() {
     }
   };
 
-  const deleteFolder = async (folder: MediaFolder) => {
-    if (!confirm(`Delete folder "${folder.name}" and all its contents?`)) return;
-    
+  const deleteFolder = (folder: MediaFolder) => {
+    setDeleteDialog({ open: true, type: 'folder', item: folder });
+  };
+
+  const confirmDeleteFolder = async (folder: MediaFolder) => {
     try {
       const { error } = await supabase
         .from('media_folders')
@@ -407,9 +417,11 @@ export default function DeveloperGallery() {
     }
   };
 
-  const deleteFile = async (file: MediaFile) => {
-    if (!confirm(`Delete "${file.name}"?`)) return;
-    
+  const deleteFile = (file: MediaFile) => {
+    setDeleteDialog({ open: true, type: 'file', item: file });
+  };
+
+  const confirmDeleteFile = async (file: MediaFile) => {
     try {
       await supabase.storage
         .from('builder-assets')
@@ -469,10 +481,13 @@ export default function DeveloperGallery() {
     setSelectionMode(false);
   };
 
-  const bulkDelete = async () => {
+  const bulkDelete = () => {
     const totalCount = selectedFiles.size + selectedFolders.size;
-    if (!confirm(`Delete ${totalCount} selected item(s)?`)) return;
+    setDeleteDialog({ open: true, type: 'bulk', count: totalCount });
+  };
 
+  const confirmBulkDelete = async () => {
+    const totalCount = selectedFiles.size + selectedFolders.size;
     try {
       // Delete files
       for (const fileId of selectedFiles) {
@@ -493,6 +508,18 @@ export default function DeveloperGallery() {
       fetchContent();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete items');
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteDialog({ ...deleteDialog, open: false });
+    
+    if (deleteDialog.type === 'folder' && deleteDialog.item) {
+      await confirmDeleteFolder(deleteDialog.item as MediaFolder);
+    } else if (deleteDialog.type === 'file' && deleteDialog.item) {
+      await confirmDeleteFile(deleteDialog.item as MediaFile);
+    } else if (deleteDialog.type === 'bulk') {
+      await confirmBulkDelete();
     }
   };
 
@@ -1079,6 +1106,37 @@ export default function DeveloperGallery() {
         excludeFolderIds={Array.from(selectedFolders)}
         userId={user?.id}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Confirm Delete
+            </DialogTitle>
+            <DialogDescription>
+              {deleteDialog.type === 'folder' && deleteDialog.item && (
+                <>Are you sure you want to delete the folder <strong>"{(deleteDialog.item as MediaFolder).name}"</strong> and all its contents? This action cannot be undone.</>
+              )}
+              {deleteDialog.type === 'file' && deleteDialog.item && (
+                <>Are you sure you want to delete <strong>"{(deleteDialog.item as MediaFile).name}"</strong>? This action cannot be undone.</>
+              )}
+              {deleteDialog.type === 'bulk' && (
+                <>Are you sure you want to delete <strong>{deleteDialog.count} selected item(s)</strong>? This action cannot be undone.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialog({ ...deleteDialog, open: false })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
