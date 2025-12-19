@@ -423,6 +423,32 @@ export default function DeveloperGallery() {
   const hasSelection = selectedFiles.size > 0 || selectedFolders.size > 0;
   const totalSelected = selectedFiles.size + selectedFolders.size;
 
+  // Show message if no shops available
+  if (shops.length === 0 && !loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Gallery</h1>
+          <p className="text-muted-foreground">Manage your media files and folders</p>
+        </div>
+        <Card className="p-8">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+            <ImageIcon className="h-16 w-16 text-muted-foreground" />
+            <div>
+              <h2 className="text-lg font-semibold">No Shops Available</h2>
+              <p className="text-muted-foreground mt-1">
+                You need to create a shop and get assigned to it before using the Gallery.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Go to <strong>Clients</strong> section to create a shop owner and shop first.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
