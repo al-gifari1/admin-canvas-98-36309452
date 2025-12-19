@@ -535,21 +535,26 @@ export function BuilderCanvas({
                 strategy={verticalListSortingStrategy}
               >
                 <div className="relative">
-                  {/* Top add button */}
-                  {onAddBlock && (
-                    <div className="flex justify-center py-2 border-b border-dashed border-border/50 bg-muted/30">
-                      <AddWidgetButton 
-                        onAddWidget={(type) => handleAddWidget(type, 0)} 
-                        onOpenLibrary={() => handleOpenLibrary(0)}
-                      />
-                    </div>
-                  )}
-                  
                   {/* Top drop indicator */}
                   {isOver && blocks.length > 0 && <DropZone isOver={isOver} />}
                   
                   {blocks.map((block, index) => (
                     <div key={block.id} className="relative">
+                      {/* Add widget zone BEFORE each block - appears on hover */}
+                      {onAddBlock && (
+                        <div className="group/add relative h-4 -mt-2 -mb-2 z-30">
+                          {/* Dashed line indicator */}
+                          <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-primary/40 opacity-0 group-hover/add:opacity-100 transition-opacity" />
+                          {/* Centered button container */}
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover/add:opacity-100 transition-opacity">
+                            <AddWidgetButton 
+                              onAddWidget={(type) => handleAddWidget(type, index)} 
+                              onOpenLibrary={() => handleOpenLibrary(index)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
                       <SortableBlock
                         block={block}
                         isSelected={selectedBlockId === block.id}
@@ -557,17 +562,23 @@ export function BuilderCanvas({
                         onDelete={() => handleDeleteClick(block.id)}
                         onDuplicate={onDuplicateBlock ? () => onDuplicateBlock(block.id) : undefined}
                       />
-                      {/* Add button between blocks */}
-                      {onAddBlock && (
-                        <div className="flex justify-center py-2 border-y border-dashed border-border/50 bg-muted/30 opacity-0 hover:opacity-100 transition-opacity">
-                          <AddWidgetButton 
-                            onAddWidget={(type) => handleAddWidget(type, index + 1)} 
-                            onOpenLibrary={() => handleOpenLibrary(index + 1)}
-                          />
-                        </div>
-                      )}
                     </div>
                   ))}
+                  
+                  {/* Add widget zone at the END of all blocks */}
+                  {onAddBlock && (
+                    <div className="group/add relative h-4 mt-2 z-30">
+                      {/* Dashed line indicator */}
+                      <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-primary/40 opacity-0 group-hover/add:opacity-100 transition-opacity" />
+                      {/* Centered button container */}
+                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover/add:opacity-100 transition-opacity">
+                        <AddWidgetButton 
+                          onAddWidget={(type) => handleAddWidget(type, blocks.length)} 
+                          onOpenLibrary={() => handleOpenLibrary(blocks.length)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SortableContext>
             )}
