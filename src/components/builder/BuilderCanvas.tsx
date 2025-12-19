@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library, Loader2, Layout, ShoppingCart, Star, Puzzle } from 'lucide-react';
+import { GripVertical, Trash2, Copy, HelpCircle, MousePointerClick, ArrowLeft, LucideIcon, Plus, Library, Loader2, Layout, ShoppingCart, Star, Puzzle, ImageOff } from 'lucide-react';
 import { icons } from 'lucide-react';
 import { Block, WIDGET_LIBRARY, WidgetType, DEFAULT_WIDGET_CONTENT } from '@/types/builder';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ interface SectionTemplate {
   type: string;
   content: Json;
   is_system_template: boolean;
+  thumbnail_url: string | null;
 }
 
 interface BuilderCanvasProps {
@@ -396,29 +397,41 @@ function ImportLibraryDialog({
                 return (
                   <Card
                     key={template.id}
-                    className="cursor-pointer hover:border-primary transition-colors group"
+                    className="cursor-pointer hover:border-primary transition-colors group overflow-hidden"
                     onClick={() => handleImport(template)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-                            <IconComponent className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-sm group-hover:text-primary transition-colors">
-                              {template.name}
-                            </h4>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {template.category} • {template.type}
-                            </p>
-                          </div>
+                    {/* Thumbnail preview */}
+                    <div className="relative aspect-video bg-muted border-b">
+                      {template.thumbnail_url ? (
+                        <img
+                          src={template.thumbnail_url}
+                          alt={template.name}
+                          className="w-full h-full object-cover object-top"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageOff className="h-8 w-8 text-muted-foreground/40" />
                         </div>
-                        {template.is_system_template && (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                            System
-                          </span>
-                        )}
+                      )}
+                      {template.is_system_template && (
+                        <span className="absolute top-2 right-2 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                          System
+                        </span>
+                      )}
+                    </div>
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <IconComponent className="h-3 w-3 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-medium text-sm truncate group-hover:text-primary transition-colors">
+                            {template.name}
+                          </h4>
+                          <p className="text-xs text-muted-foreground capitalize truncate">
+                            {template.category} • {template.type}
+                          </p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
