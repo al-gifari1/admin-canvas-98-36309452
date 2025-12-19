@@ -52,6 +52,7 @@ interface CheckoutProfile {
   profile_type: 'physical' | 'digital';
   address_enabled: boolean;
   city_enabled: boolean;
+  email_enabled: boolean;
   notes_enabled: boolean;
   shipping_rules: ShippingRule[];
   free_shipping_enabled: boolean;
