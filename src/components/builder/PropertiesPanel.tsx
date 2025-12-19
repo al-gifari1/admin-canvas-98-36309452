@@ -89,7 +89,7 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
       case 'progress-bar':
         return <ProgressBarProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'container':
-        return <ContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
+        return <ContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'grid':
         return <GridProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'tabs':
