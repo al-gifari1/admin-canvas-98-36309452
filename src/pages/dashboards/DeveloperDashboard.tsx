@@ -9,6 +9,7 @@ import { DeveloperStockInventory } from './developer/DeveloperStockInventory';
 import DeveloperGallery from './developer/DeveloperGallery';
 import { DeveloperTracking } from './developer/DeveloperTracking';
 import { DeveloperCheckout } from './developer/DeveloperCheckout';
+import { DeveloperCourier } from './developer/DeveloperCourier';
 import { DeveloperReports } from './developer/DeveloperReports';
 import { DeveloperSectionLibrary } from './developer/DeveloperSectionLibrary';
 import { PageDashboard } from './developer/PageDashboard';
@@ -66,6 +67,8 @@ export default function DeveloperDashboard() {
         return <DeveloperTracking />;
       case 'checkout':
         return <DeveloperCheckout />;
+      case 'courier':
+        return <DeveloperCourier />;
       case 'reports':
         return <DeveloperReports />;
       case 'section-library':

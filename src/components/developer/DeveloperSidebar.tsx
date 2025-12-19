@@ -17,6 +17,7 @@ import {
   List,
   Layers,
   ImageIcon,
+  Truck,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -55,6 +56,7 @@ const menuItems = [
   { id: 'gallery', title: 'Gallery', icon: ImageIcon },
   { id: 'tracking', title: 'Tracking', icon: Target },
   { id: 'checkout', title: 'Checkout', icon: CreditCard },
+  { id: 'courier', title: 'Courier', icon: Truck },
   { id: 'reports', title: 'Reports', icon: BarChart3 },
 ];
 
