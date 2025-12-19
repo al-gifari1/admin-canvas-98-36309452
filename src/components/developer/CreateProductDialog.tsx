@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Package, DollarSign, Warehouse, Image as ImageIcon } from 'lucide-react';
+import { Package, DollarSign, Warehouse, Image as ImageIcon, FolderOpen } from 'lucide-react';
+import { GalleryPickerDialog } from '@/components/gallery/GalleryPickerDialog';
 
 interface Shop {
   id: string;
@@ -71,6 +72,7 @@ export function CreateProductDialog({
   const [loading, setLoading] = useState(false);
   const [shops, setShops] = useState<Shop[]>([]);
   const [activeTab, setActiveTab] = useState('basic');
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -519,15 +521,26 @@ export function CreateProductDialog({
             <TabsContent value="media" className="space-y-4 mt-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="main_image">Main Image URL</Label>
-                  <Input
-                    id="main_image"
-                    value={formData.main_image}
-                    onChange={(e) => setFormData(prev => ({ ...prev, main_image: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <Label htmlFor="main_image">Main Image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="main_image"
+                      value={formData.main_image}
+                      onChange={(e) => setFormData(prev => ({ ...prev, main_image: e.target.value }))}
+                      placeholder="https://example.com/image.jpg"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setGalleryPickerOpen(true)}
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Browse
+                    </Button>
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Enter a direct URL to your product image
+                    Enter a URL or browse your gallery
                   </p>
                 </div>
 
@@ -543,13 +556,6 @@ export function CreateProductDialog({
                     />
                   </div>
                 )}
-
-                <div className="p-4 rounded-lg border border-dashed text-center">
-                  <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Gallery upload coming soon
-                  </p>
-                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -567,6 +573,13 @@ export function CreateProductDialog({
             </Button>
           </div>
         </form>
+
+        <GalleryPickerDialog
+          open={galleryPickerOpen}
+          onOpenChange={setGalleryPickerOpen}
+          onSelect={(url) => setFormData(prev => ({ ...prev, main_image: url }))}
+          shopId={formData.shop_id}
+        />
       </DialogContent>
     </Dialog>
   );
