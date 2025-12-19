@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveSlider } from '../controls/ResponsiveSlider';
 import { BoxModelControl } from '../controls/BoxModelControl';
+import { CustomCSSFields } from '../controls/CustomCSSFields';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
@@ -432,6 +433,16 @@ export function FlexContainerProperties({ content, onUpdate, tab }: FlexContaine
             </div>
           </div>
         </div>
+
+        {/* Custom CSS */}
+        <CustomCSSFields
+          cssId={flexContainer.advanced.cssId}
+          cssClasses={flexContainer.advanced.cssClasses}
+          customCSS={flexContainer.advanced.customCSS}
+          onCssIdChange={(cssId) => updateAdvanced({ cssId })}
+          onCssClassesChange={(cssClasses) => updateAdvanced({ cssClasses })}
+          onCustomCSSChange={(customCSS) => updateAdvanced({ customCSS })}
+        />
       </div>
     );
   }

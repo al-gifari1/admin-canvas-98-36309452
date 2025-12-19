@@ -1,6 +1,7 @@
 import { CSSProperties } from 'react';
 import { Block, FlexContainerContent } from '@/types/builder';
 import { PaddingHandles } from './canvas/PaddingHandles';
+import { ScopedStyle } from './ScopedStyle';
 
 interface FlexContainerRendererProps {
   block: Block;
@@ -149,9 +150,11 @@ export function FlexContainerRenderer({
 
   return (
     <div
-      className={`${advanced.maxWidth !== 'custom' ? maxWidthClasses[advanced.maxWidth] || '' : ''} ${visibilityClasses.join(' ')} relative`}
+      className={`widget-${block.id} ${advanced.maxWidth !== 'custom' ? maxWidthClasses[advanced.maxWidth] || '' : ''} ${advanced.cssClasses || ''} ${visibilityClasses.join(' ')} relative`}
       style={containerStyles}
+      id={advanced.cssId || undefined}
     >
+      <ScopedStyle widgetId={block.id} css={advanced.customCSS} />
       {/* Canvas interaction: Padding handles */}
       {canvasInteraction?.paddingHandles && (
         <PaddingHandles

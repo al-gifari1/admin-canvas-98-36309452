@@ -1,6 +1,7 @@
 import { CSSProperties } from 'react';
 import { Block, SmartGridContent } from '@/types/builder';
 import { GapHandles, GridGuides } from './canvas';
+import { ScopedStyle } from './ScopedStyle';
 
 interface SmartGridRendererProps {
   block: Block;
@@ -156,9 +157,11 @@ export function SmartGridRenderer({
 
   return (
     <div
-      className={`${advanced.maxWidth !== 'custom' ? maxWidthClasses[advanced.maxWidth] || '' : ''} ${visibilityClasses.join(' ')} relative`}
+      className={`widget-${block.id} ${advanced.maxWidth !== 'custom' ? maxWidthClasses[advanced.maxWidth] || '' : ''} ${advanced.cssClasses || ''} ${visibilityClasses.join(' ')} relative`}
       style={containerStyles}
+      id={advanced.cssId || undefined}
     >
+      <ScopedStyle widgetId={block.id} css={advanced.customCSS} />
       {/* Grid content area */}
       <div style={gridStyles} className="relative">
         {/* Canvas interaction: Grid guides */}

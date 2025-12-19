@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ResponsiveSlider } from '../controls/ResponsiveSlider';
 import { BoxModelControl } from '../controls/BoxModelControl';
+import { CustomCSSFields } from '../controls/CustomCSSFields';
 import { Button } from '@/components/ui/button';
 import { 
   Grid3X3, 
@@ -1303,28 +1304,15 @@ export function ContainerProperties({ content, onUpdate, tab }: ContainerPropert
         </div>
 
         {/* Custom CSS */}
-        <div className="space-y-4 pt-4 border-t border-border">
-          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Custom CSS</Label>
-          
-          <div className="space-y-2">
-            <Label className="text-xs">CSS ID</Label>
-            <Input
-              value={container.advanced.cssId || ''}
-              onChange={(e) => updateAdvanced({ cssId: e.target.value })}
-              placeholder="my-container"
-              className="h-8 text-xs"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs">CSS Classes</Label>
-            <Input
-              value={container.advanced.cssClasses || ''}
-              onChange={(e) => updateAdvanced({ cssClasses: e.target.value })}
-              placeholder="class1 class2"
-              className="h-8 text-xs"
-            />
-          </div>
+        <div className="pt-4 border-t border-border">
+          <CustomCSSFields
+            cssId={container.advanced.cssId}
+            cssClasses={container.advanced.cssClasses}
+            customCSS={container.advanced.customCSS}
+            onCssIdChange={(cssId) => updateAdvanced({ cssId })}
+            onCssClassesChange={(cssClasses) => updateAdvanced({ cssClasses })}
+            onCustomCSSChange={(customCSS) => updateAdvanced({ customCSS })}
+          />
         </div>
 
         {/* Responsive Visibility */}

@@ -2,6 +2,7 @@ import { CSSProperties } from 'react';
 import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue, FlexContainerContent, SmartGridContent } from '@/types/builder';
 import { FlexContainerRenderer } from './FlexContainerRenderer';
 import { SmartGridRenderer } from './SmartGridRenderer';
+import { ScopedStyle } from './ScopedStyle';
 import {
   icons, 
   LucideIcon, 
@@ -262,9 +263,10 @@ export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRen
       
       return (
         <div 
-          className={`${alignmentClasses[alignment] || 'text-left'} ${responsiveClasses}`}
+          className={`widget-${block.id} ${alignmentClasses[alignment] || 'text-left'} ${responsiveClasses}`}
           style={wrapperStyles}
         >
+          <ScopedStyle widgetId={block.id} css={merged.advanced?.customCSS} />
           <Tag 
             className={`text-foreground ${cssClasses}`}
             style={headingStyles}
@@ -410,9 +412,10 @@ export function WidgetRenderer({ block, isSelected, onContentChange }: WidgetRen
 
       return (
         <div 
-          className={`p-4 flex ${alignClass} ${visibilityClasses.join(' ')}`}
+          className={`widget-${block.id} p-4 flex ${alignClass} ${visibilityClasses.join(' ')}`}
           style={wrapperStyles}
         >
+          <ScopedStyle widgetId={block.id} css={button.advanced.customCSS} />
           {button.link.url && button.link.url !== '#' ? (
             <a 
               href={button.link.url}

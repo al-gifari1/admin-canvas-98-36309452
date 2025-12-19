@@ -16,6 +16,7 @@ import {
   TypographyControl,
   ShadowControl,
   BoxModelControl,
+  CustomCSSFields,
 } from '../controls';
 
 interface HeadingPropertiesProps {
@@ -493,34 +494,21 @@ export function HeadingProperties({ content, onUpdate, tab }: HeadingPropertiesP
         </div>
       </div>
 
-      {/* CSS Attributes */}
-      <div className="space-y-3">
-        <Label className="text-xs font-medium">Custom Attributes</Label>
-        <div className="space-y-2">
-          <div>
-            <Label className="text-[10px] text-muted-foreground">CSS ID</Label>
-            <Input
-              value={heading.advanced.cssId || ''}
-              onChange={(e) => updateHeading({
-                advanced: { ...heading.advanced, cssId: e.target.value },
-              })}
-              placeholder="my-heading"
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] text-muted-foreground">CSS Classes</Label>
-            <Input
-              value={heading.advanced.cssClasses || ''}
-              onChange={(e) => updateHeading({
-                advanced: { ...heading.advanced, cssClasses: e.target.value },
-              })}
-              placeholder="class-1 class-2"
-              className="h-8 text-xs"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Custom CSS Attributes */}
+      <CustomCSSFields
+        cssId={heading.advanced.cssId}
+        cssClasses={heading.advanced.cssClasses}
+        customCSS={heading.advanced.customCSS}
+        onCssIdChange={(cssId) => updateHeading({
+          advanced: { ...heading.advanced, cssId },
+        })}
+        onCssClassesChange={(cssClasses) => updateHeading({
+          advanced: { ...heading.advanced, cssClasses },
+        })}
+        onCustomCSSChange={(customCSS) => updateHeading({
+          advanced: { ...heading.advanced, customCSS },
+        })}
+      />
     </div>
   );
 }
