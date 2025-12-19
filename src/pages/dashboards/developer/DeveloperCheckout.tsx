@@ -58,19 +58,46 @@ interface CheckoutProfile {
   free_shipping_enabled: boolean;
   free_shipping_threshold: number | null;
   payment_methods: PaymentMethods;
+  product_ids: string[];
   shop?: { name: string };
+}
+
+interface Product {
+  id: string;
+  name: string;
 }
 
 export function DeveloperCheckout() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<CheckoutProfile[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<CheckoutProfile | null>(null);
 
   useEffect(() => {
     fetchProfiles();
+    fetchAllProducts();
   }, [user]);
+
+  const fetchAllProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name');
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const getProductNames = (productIds: string[]) => {
+    if (!productIds || productIds.length === 0) return [];
+    return productIds
+      .map(id => products.find(p => p.id === id)?.name)
+      .filter(Boolean) as string[];
+  };
 
   const fetchProfiles = async () => {
     if (!user) return;
@@ -94,7 +121,8 @@ export function DeveloperCheckout() {
         shipping_rules: (p.shipping_rules as unknown as ShippingRule[]) || [],
         payment_methods: (p.payment_methods as unknown as PaymentMethods) || {
           cod: true, online: false, bkash: false, nagad: false, rocket: false
-        }
+        },
+        product_ids: (p.product_ids as string[]) || []
       }));
       
       setProfiles(parsed);
@@ -192,6 +220,7 @@ export function DeveloperCheckout() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Products</TableHead>
                     <TableHead>Shop</TableHead>
                     <TableHead>Payment Methods</TableHead>
                     <TableHead>Shipping</TableHead>
@@ -214,6 +243,26 @@ export function DeveloperCheckout() {
                             Physical
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {getProductNames(profile.product_ids).length === 0 ? (
+                            <span className="text-muted-foreground text-xs">No products</span>
+                          ) : (
+                            <>
+                              {getProductNames(profile.product_ids).slice(0, 2).map((name, i) => (
+                                <Badge key={i} variant="outline" className="text-xs truncate max-w-[100px]">
+                                  {name}
+                                </Badge>
+                              ))}
+                              {getProductNames(profile.product_ids).length > 2 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{getProductNames(profile.product_ids).length - 2}
+                                </Badge>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {profile.shop?.name || '-'}
