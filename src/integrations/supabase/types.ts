@@ -472,7 +472,7 @@ export type Database = {
           price: number
           product_type: string
           sale_price: number | null
-          shop_id: string
+          shop_id: string | null
           short_description: string | null
           sizes: string[] | null
           sku: string | null
@@ -506,7 +506,7 @@ export type Database = {
           price?: number
           product_type?: string
           sale_price?: number | null
-          shop_id: string
+          shop_id?: string | null
           short_description?: string | null
           sizes?: string[] | null
           sku?: string | null
@@ -540,7 +540,7 @@ export type Database = {
           price?: number
           product_type?: string
           sale_price?: number | null
-          shop_id?: string
+          shop_id?: string | null
           short_description?: string | null
           sizes?: string[] | null
           sku?: string | null
