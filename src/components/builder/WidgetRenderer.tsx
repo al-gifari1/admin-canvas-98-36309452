@@ -468,6 +468,9 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
           alignItems: 'stretch',
           justifyContent: 'start',
           alignContent: 'start',
+          autoFlow: 'row',
+          columnWidth: { type: 'fr', value: 1 },
+          rowHeight: { type: 'auto' },
         },
         background: { type: 'solid', color: 'transparent' },
         border: {
@@ -482,6 +485,10 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
           padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
           maxWidth: 'lg',
           responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+          width: { type: 'auto' },
+          height: { type: 'auto' },
+          overflow: 'visible',
+          position: 'default',
         },
       };
       
@@ -530,6 +537,23 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
         ...(advanced.maxWidth === 'custom' && advanced.customMaxWidth ? { maxWidth: `${advanced.customMaxWidth}px` } : {}),
         // Z-Index
         ...(advanced.zIndex ? { zIndex: advanced.zIndex } : {}),
+        // Width
+        ...(advanced.width?.type === 'full' ? { width: '100%' } : {}),
+        ...(advanced.width?.type === 'custom' && advanced.width.value ? { width: `${advanced.width.value}${advanced.width.unit || '%'}` } : {}),
+        // Height
+        ...(advanced.height?.type === 'custom' && advanced.height.value ? { height: `${advanced.height.value}${advanced.height.unit || 'px'}` } : {}),
+        // Min Height
+        ...(advanced.minHeight?.desktop ? { minHeight: `${advanced.minHeight.desktop}px` } : {}),
+        // Overflow
+        ...(advanced.overflow && advanced.overflow !== 'visible' ? { overflow: advanced.overflow } : {}),
+        // Position
+        ...(advanced.position && advanced.position !== 'default' ? { 
+          position: advanced.position as CSSProperties['position'],
+          ...(advanced.positionOffsets?.top !== undefined ? { top: `${advanced.positionOffsets.top}px` } : {}),
+          ...(advanced.positionOffsets?.right !== undefined ? { right: `${advanced.positionOffsets.right}px` } : {}),
+          ...(advanced.positionOffsets?.bottom !== undefined ? { bottom: `${advanced.positionOffsets.bottom}px` } : {}),
+          ...(advanced.positionOffsets?.left !== undefined ? { left: `${advanced.positionOffsets.left}px` } : {}),
+        } : {}),
       };
       
       // Background
@@ -565,11 +589,46 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
         containerStyles.boxShadow = `${shadow.horizontal}px ${shadow.vertical}px ${shadow.blur}px ${shadow.spread}px ${shadow.color}`;
       }
       
+      // Build grid-template-columns based on columnWidth settings
+      const buildGridTemplateColumns = () => {
+        const cols = layout.columns.desktop;
+        const colWidth = layout.columnWidth;
+        
+        if (!colWidth || colWidth.type === 'auto') {
+          return `repeat(${cols}, auto)`;
+        } else if (colWidth.type === 'fr') {
+          return `repeat(${cols}, ${colWidth.value || 1}fr)`;
+        } else if (colWidth.type === 'px') {
+          return `repeat(${cols}, ${colWidth.value || 200}px)`;
+        } else if (colWidth.type === '%') {
+          return `repeat(${cols}, ${colWidth.value || 25}%)`;
+        }
+        return `repeat(${cols}, 1fr)`;
+      };
+      
+      // Build grid-template-rows based on rowHeight settings
+      const buildGridTemplateRows = () => {
+        if (layout.rows === 'auto') return undefined;
+        
+        const rowHeight = layout.rowHeight;
+        if (!rowHeight || rowHeight.type === 'auto') {
+          return `repeat(${layout.rows}, auto)`;
+        } else if (rowHeight.type === 'minmax') {
+          return `repeat(${layout.rows}, minmax(${rowHeight.minValue || 50}px, ${rowHeight.value || 200}px))`;
+        } else if (rowHeight.type === 'custom') {
+          return `repeat(${layout.rows}, ${rowHeight.value || 100}px)`;
+        }
+        return undefined;
+      };
+      
       // Grid styles
       const gridStyles: CSSProperties = {
         display: layout.displayType,
-        gridTemplateColumns: layout.displayType === 'grid' ? `repeat(${layout.columns.desktop}, 1fr)` : undefined,
-        gridTemplateRows: layout.rows === 'auto' ? undefined : `repeat(${layout.rows}, 1fr)`,
+        ...(layout.displayType === 'grid' ? {
+          gridTemplateColumns: buildGridTemplateColumns(),
+          gridTemplateRows: buildGridTemplateRows(),
+          gridAutoFlow: layout.autoFlow || 'row',
+        } : {}),
         gap: `${layout.rowGap.desktop}px ${layout.columnGap.desktop}px`,
         justifyItems: layout.justifyItems,
         alignItems: layout.alignItems,

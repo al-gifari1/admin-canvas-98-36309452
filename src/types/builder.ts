@@ -142,6 +142,11 @@ export interface ContainerLayout {
   alignItems: 'start' | 'center' | 'end' | 'stretch';
   justifyContent: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
   alignContent: 'start' | 'center' | 'end' | 'stretch' | 'between' | 'around';
+  // New MVP properties
+  autoFlow?: 'row' | 'column' | 'dense' | 'row-dense' | 'column-dense';
+  columnWidth?: { type: 'auto' | 'fr' | 'px' | '%'; value?: number };
+  rowHeight?: { type: 'auto' | 'minmax' | 'custom'; value?: number; minValue?: number };
+  gapPreset?: 'none' | 'small' | 'medium' | 'large';
 }
 
 export interface ContainerBackground {
@@ -198,6 +203,12 @@ export interface ContainerAdvanced {
   minHeight?: ResponsiveValue;
   maxWidth: 'full' | 'lg' | 'md' | 'sm' | 'custom';
   customMaxWidth?: number;
+  // New MVP properties
+  width?: { type: 'auto' | 'full' | 'custom'; value?: number; unit?: 'px' | '%' | 'vw' };
+  height?: { type: 'auto' | 'custom'; value?: number; unit?: 'px' | 'vh' };
+  overflow?: 'visible' | 'hidden' | 'scroll' | 'auto';
+  position?: 'default' | 'relative' | 'absolute' | 'fixed';
+  positionOffsets?: { top?: number; right?: number; bottom?: number; left?: number };
 }
 
 export interface ContainerContent {
