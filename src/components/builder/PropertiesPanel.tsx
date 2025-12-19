@@ -19,6 +19,8 @@ import { TestimonialsProperties } from './properties/TestimonialsProperties';
 import { ProgressBarProperties } from './properties/ProgressBarProperties';
 import { ContainerProperties } from './properties/ContainerProperties';
 import { GridProperties } from './properties/GridProperties';
+import { FlexContainerProperties } from './properties/FlexContainerProperties';
+import { SmartGridProperties } from './properties/SmartGridProperties';
 import { TabsProperties } from './properties/TabsProperties';
 import { AccordionProperties } from './properties/AccordionProperties';
 import { GalleryProperties } from './properties/GalleryProperties';
@@ -92,6 +94,10 @@ export function PropertiesPanel({ block, onClose, onUpdate }: PropertiesPanelPro
         return <ContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'grid':
         return <GridProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
+      case 'flex-container':
+        return <FlexContainerProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
+      case 'smart-grid':
+        return <SmartGridProperties content={block.content} onUpdate={handleUpdate} tab={tab} />;
       case 'tabs':
         return <TabsProperties content={block.content} onUpdate={handleUpdate} tab={tab === 'advanced' ? 'style' : tab} />;
       case 'accordion':
