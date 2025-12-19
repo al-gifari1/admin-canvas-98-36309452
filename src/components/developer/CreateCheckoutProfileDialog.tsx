@@ -58,6 +58,7 @@ interface CheckoutProfile {
   profile_type: 'physical' | 'digital';
   address_enabled: boolean;
   city_enabled: boolean;
+  email_enabled: boolean;
   notes_enabled: boolean;
   shipping_rules: ShippingRule[];
   free_shipping_enabled: boolean;
@@ -98,6 +99,7 @@ export function CreateCheckoutProfileDialog({
     profile_type: 'physical' as 'physical' | 'digital',
     address_enabled: true,
     city_enabled: true,
+    email_enabled: false,
     notes_enabled: false,
     shipping_rules: [{ label: 'Inside Dhaka', cost: 60 }] as ShippingRule[],
     free_shipping_enabled: false,
@@ -115,6 +117,7 @@ export function CreateCheckoutProfileDialog({
           profile_type: profile.profile_type || 'physical',
           address_enabled: profile.address_enabled,
           city_enabled: profile.city_enabled,
+          email_enabled: (profile as any).email_enabled ?? false,
           notes_enabled: profile.notes_enabled,
           shipping_rules: profile.shipping_rules || [{ label: 'Inside Dhaka', cost: 60 }],
           free_shipping_enabled: profile.free_shipping_enabled,
@@ -146,6 +149,7 @@ export function CreateCheckoutProfileDialog({
       profile_type: 'physical',
       address_enabled: true,
       city_enabled: true,
+      email_enabled: false,
       notes_enabled: false,
       shipping_rules: [{ label: 'Inside Dhaka', cost: 60 }],
       free_shipping_enabled: false,
@@ -241,9 +245,10 @@ export function CreateCheckoutProfileDialog({
       payment_methods: type === 'physical' 
         ? { cod: true, online: false, bkash: false, nagad: false, rocket: false }
         : { cod: false, online: false, bkash: true, nagad: true, rocket: false },
-      // For digital, disable address and city by default
+      // For digital, disable address and city by default, enable email
       address_enabled: type === 'physical',
       city_enabled: type === 'physical',
+      email_enabled: type === 'digital',
     }));
   };
 
@@ -264,6 +269,7 @@ export function CreateCheckoutProfileDialog({
         profile_type: formData.profile_type,
         address_enabled: formData.address_enabled,
         city_enabled: formData.city_enabled,
+        email_enabled: formData.email_enabled,
         notes_enabled: formData.notes_enabled,
         shipping_rules: formData.profile_type === 'physical' 
           ? JSON.parse(JSON.stringify(formData.shipping_rules))
@@ -476,6 +482,22 @@ export function CreateCheckoutProfileDialog({
                   id="city_enabled"
                   checked={formData.city_enabled}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, city_enabled: checked }))}
+                />
+              </div>
+
+              <div className={`flex items-center justify-between p-3 rounded-lg border ${
+                formData.profile_type === 'digital' ? 'bg-primary/5 border-primary/30' : ''
+              }`}>
+                <div>
+                  <Label htmlFor="email_enabled" className="cursor-pointer">Email</Label>
+                  {formData.profile_type === 'digital' && (
+                    <p className="text-xs text-muted-foreground">Recommended for digital delivery</p>
+                  )}
+                </div>
+                <Switch
+                  id="email_enabled"
+                  checked={formData.email_enabled}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, email_enabled: checked }))}
                 />
               </div>
               

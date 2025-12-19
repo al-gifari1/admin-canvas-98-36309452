@@ -83,6 +83,7 @@ export type Database = {
           city_enabled: boolean | null
           created_at: string | null
           created_by: string
+          email_enabled: boolean | null
           enabled_fields: Json | null
           free_shipping_enabled: boolean | null
           free_shipping_threshold: number | null
@@ -101,6 +102,7 @@ export type Database = {
           city_enabled?: boolean | null
           created_at?: string | null
           created_by: string
+          email_enabled?: boolean | null
           enabled_fields?: Json | null
           free_shipping_enabled?: boolean | null
           free_shipping_threshold?: number | null
@@ -119,6 +121,7 @@ export type Database = {
           city_enabled?: boolean | null
           created_at?: string | null
           created_by?: string
+          email_enabled?: boolean | null
           enabled_fields?: Json | null
           free_shipping_enabled?: boolean | null
           free_shipping_threshold?: number | null
