@@ -135,7 +135,22 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
         type: widgetType,
         content: { ...DEFAULT_WIDGET_CONTENT[widgetType] },
       };
-      setBlocks((prev) => [...prev, newBlock]);
+      
+      // Insert at drop position if over a block, otherwise at end
+      if (over.id === 'canvas') {
+        setBlocks((prev) => [...prev, newBlock]);
+      } else {
+        const overIndex = blocks.findIndex((b) => b.id === over.id);
+        if (overIndex >= 0) {
+          setBlocks((prev) => {
+            const newBlocks = [...prev];
+            newBlocks.splice(overIndex, 0, newBlock);
+            return newBlocks;
+          });
+        } else {
+          setBlocks((prev) => [...prev, newBlock]);
+        }
+      }
       setSelectedBlockId(newBlock.id);
       return;
     }
@@ -148,6 +163,21 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
         return arrayMove(items, oldIndex, newIndex);
       });
     }
+  };
+
+  // Add block at specific index (used by AddWidgetButton)
+  const handleAddBlock = (type: WidgetType, index: number) => {
+    const newBlock: Block = {
+      id: generateBlockId(),
+      type,
+      content: { ...DEFAULT_WIDGET_CONTENT[type] },
+    };
+    setBlocks((prev) => {
+      const newBlocks = [...prev];
+      newBlocks.splice(index, 0, newBlock);
+      return newBlocks;
+    });
+    setSelectedBlockId(newBlock.id);
   };
 
   const handleDeleteBlock = useCallback((blockId: string) => {
@@ -324,6 +354,24 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
             selectedBlockId={selectedBlockId}
             onSelectBlock={setSelectedBlockId}
             onDeleteBlock={handleDeleteBlock}
+            onDuplicateBlock={(id) => {
+              const block = blocks.find(b => b.id === id);
+              if (block) {
+                const newBlock: Block = {
+                  id: generateBlockId(),
+                  type: block.type,
+                  content: { ...block.content },
+                };
+                const index = blocks.findIndex(b => b.id === id);
+                setBlocks((prev) => {
+                  const newBlocks = [...prev];
+                  newBlocks.splice(index + 1, 0, newBlock);
+                  return newBlocks;
+                });
+                setSelectedBlockId(newBlock.id);
+              }
+            }}
+            onAddBlock={handleAddBlock}
             viewMode={viewMode}
           />
 

@@ -699,26 +699,118 @@ export function ContainerProperties({ content, onUpdate, tab }: ContainerPropert
 
           {container.background.type === 'gradient' && (
             <div className="space-y-3">
+              {/* Start Color */}
               <div className="space-y-2">
-                <Label className="text-xs">Gradient Angle</Label>
-                <Slider
-                  value={[container.background.gradient?.angle || 90]}
-                  onValueChange={([v]) => updateBackground({
-                    gradient: {
-                      ...container.background.gradient,
-                      type: 'linear',
-                      angle: v,
-                      stops: container.background.gradient?.stops || [
+                <Label className="text-xs">Start Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={container.background.gradient?.stops?.[0]?.color || '#3b82f6'}
+                    onChange={(e) => {
+                      const stops = container.background.gradient?.stops || [
                         { color: '#3b82f6', position: 0 },
                         { color: '#8b5cf6', position: 100 }
-                      ]
-                    }
-                  })}
-                  min={0}
-                  max={360}
-                  step={1}
-                />
-                <span className="text-xs text-muted-foreground">{container.background.gradient?.angle || 90}°</span>
+                      ];
+                      updateBackground({
+                        gradient: {
+                          ...container.background.gradient,
+                          type: 'linear',
+                          angle: container.background.gradient?.angle || 90,
+                          stops: [{ ...stops[0], color: e.target.value }, stops[1]]
+                        }
+                      });
+                    }}
+                    className="w-12 h-8 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={container.background.gradient?.stops?.[0]?.color || '#3b82f6'}
+                    onChange={(e) => {
+                      const stops = container.background.gradient?.stops || [
+                        { color: '#3b82f6', position: 0 },
+                        { color: '#8b5cf6', position: 100 }
+                      ];
+                      updateBackground({
+                        gradient: {
+                          ...container.background.gradient,
+                          type: 'linear',
+                          angle: container.background.gradient?.angle || 90,
+                          stops: [{ ...stops[0], color: e.target.value }, stops[1]]
+                        }
+                      });
+                    }}
+                    className="flex-1 h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* End Color */}
+              <div className="space-y-2">
+                <Label className="text-xs">End Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={container.background.gradient?.stops?.[1]?.color || '#8b5cf6'}
+                    onChange={(e) => {
+                      const stops = container.background.gradient?.stops || [
+                        { color: '#3b82f6', position: 0 },
+                        { color: '#8b5cf6', position: 100 }
+                      ];
+                      updateBackground({
+                        gradient: {
+                          ...container.background.gradient,
+                          type: 'linear',
+                          angle: container.background.gradient?.angle || 90,
+                          stops: [stops[0], { ...stops[1], color: e.target.value }]
+                        }
+                      });
+                    }}
+                    className="w-12 h-8 p-1 cursor-pointer"
+                  />
+                  <Input
+                    value={container.background.gradient?.stops?.[1]?.color || '#8b5cf6'}
+                    onChange={(e) => {
+                      const stops = container.background.gradient?.stops || [
+                        { color: '#3b82f6', position: 0 },
+                        { color: '#8b5cf6', position: 100 }
+                      ];
+                      updateBackground({
+                        gradient: {
+                          ...container.background.gradient,
+                          type: 'linear',
+                          angle: container.background.gradient?.angle || 90,
+                          stops: [stops[0], { ...stops[1], color: e.target.value }]
+                        }
+                      });
+                    }}
+                    className="flex-1 h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Gradient Angle */}
+              <div className="space-y-2">
+                <Label className="text-xs">Gradient Angle</Label>
+                <div className="flex gap-2 items-center">
+                  <Slider
+                    value={[container.background.gradient?.angle || 90]}
+                    onValueChange={([v]) => updateBackground({
+                      gradient: {
+                        ...container.background.gradient,
+                        type: 'linear',
+                        angle: v,
+                        stops: container.background.gradient?.stops || [
+                          { color: '#3b82f6', position: 0 },
+                          { color: '#8b5cf6', position: 100 }
+                        ]
+                      }
+                    })}
+                    min={0}
+                    max={360}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground w-8">{container.background.gradient?.angle || 90}°</span>
+                </div>
               </div>
             </div>
           )}

@@ -26,12 +26,24 @@ interface TypographyControlProps {
 
 const fontFamilies = [
   { value: 'inherit', label: 'Default' },
+  // Sans-serif
   { value: 'Inter, sans-serif', label: 'Inter' },
   { value: 'Roboto, sans-serif', label: 'Roboto' },
   { value: 'Open Sans, sans-serif', label: 'Open Sans' },
   { value: 'Lato, sans-serif', label: 'Lato' },
   { value: 'Montserrat, sans-serif', label: 'Montserrat' },
   { value: 'Poppins, sans-serif', label: 'Poppins' },
+  { value: 'Oswald, sans-serif', label: 'Oswald' },
+  { value: 'Raleway, sans-serif', label: 'Raleway' },
+  { value: 'Nunito, sans-serif', label: 'Nunito' },
+  { value: 'Ubuntu, sans-serif', label: 'Ubuntu' },
+  { value: 'Work Sans, sans-serif', label: 'Work Sans' },
+  // Bangla fonts
+  { value: 'Hind Siliguri, sans-serif', label: 'Hind Siliguri (বাংলা)' },
+  { value: 'Anek Bangla, sans-serif', label: 'Anek Bangla (বাংলা)' },
+  { value: 'Noto Sans Bengali, sans-serif', label: 'Noto Sans Bengali (বাংলা)' },
+  { value: 'Tiro Bangla, serif', label: 'Tiro Bangla (বাংলা)' },
+  // Serif
   { value: 'Playfair Display, serif', label: 'Playfair Display' },
   { value: 'Merriweather, serif', label: 'Merriweather' },
   { value: 'Georgia, serif', label: 'Georgia' },
