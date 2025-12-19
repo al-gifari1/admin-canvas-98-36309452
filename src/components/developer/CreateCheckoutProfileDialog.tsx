@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Package, Smartphone, Zap } from 'lucide-react';
 
 interface Shop {
   id: string;
@@ -32,16 +33,26 @@ interface ShippingRule {
   cost: number;
 }
 
+interface PaymentMethods {
+  cod: boolean;
+  online: boolean;
+  bkash: boolean;
+  nagad: boolean;
+  rocket: boolean;
+}
+
 interface CheckoutProfile {
   id: string;
   name: string;
   shop_id: string;
+  profile_type: 'physical' | 'digital';
   address_enabled: boolean;
   city_enabled: boolean;
   notes_enabled: boolean;
   shipping_rules: ShippingRule[];
   free_shipping_enabled: boolean;
   free_shipping_threshold: number | null;
+  payment_methods: PaymentMethods;
 }
 
 interface CreateCheckoutProfileDialogProps {
@@ -50,6 +61,14 @@ interface CreateCheckoutProfileDialogProps {
   profile?: CheckoutProfile | null;
   onSuccess: () => void;
 }
+
+const defaultPaymentMethods: PaymentMethods = {
+  cod: true,
+  online: false,
+  bkash: false,
+  nagad: false,
+  rocket: false,
+};
 
 export function CreateCheckoutProfileDialog({ 
   open, 
@@ -64,12 +83,14 @@ export function CreateCheckoutProfileDialog({
   const [formData, setFormData] = useState({
     name: '',
     shop_id: '',
+    profile_type: 'physical' as 'physical' | 'digital',
     address_enabled: true,
     city_enabled: true,
     notes_enabled: false,
     shipping_rules: [{ label: 'Inside Dhaka', cost: 60 }] as ShippingRule[],
     free_shipping_enabled: false,
     free_shipping_threshold: '',
+    payment_methods: { ...defaultPaymentMethods },
   });
 
   useEffect(() => {
@@ -79,12 +100,14 @@ export function CreateCheckoutProfileDialog({
         setFormData({
           name: profile.name,
           shop_id: profile.shop_id,
+          profile_type: profile.profile_type || 'physical',
           address_enabled: profile.address_enabled,
           city_enabled: profile.city_enabled,
           notes_enabled: profile.notes_enabled,
           shipping_rules: profile.shipping_rules || [{ label: 'Inside Dhaka', cost: 60 }],
           free_shipping_enabled: profile.free_shipping_enabled,
           free_shipping_threshold: profile.free_shipping_threshold?.toString() || '',
+          payment_methods: profile.payment_methods || { ...defaultPaymentMethods },
         });
       } else {
         resetForm();
@@ -96,12 +119,14 @@ export function CreateCheckoutProfileDialog({
     setFormData({
       name: '',
       shop_id: '',
+      profile_type: 'physical',
       address_enabled: true,
       city_enabled: true,
       notes_enabled: false,
       shipping_rules: [{ label: 'Inside Dhaka', cost: 60 }],
       free_shipping_enabled: false,
       free_shipping_threshold: '',
+      payment_methods: { ...defaultPaymentMethods },
     });
   };
 
@@ -148,6 +173,27 @@ export function CreateCheckoutProfileDialog({
     }));
   };
 
+  const updatePaymentMethod = (method: keyof PaymentMethods, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      payment_methods: { ...prev.payment_methods, [method]: checked }
+    }));
+  };
+
+  const handleProfileTypeChange = (type: 'physical' | 'digital') => {
+    setFormData(prev => ({
+      ...prev,
+      profile_type: type,
+      // Reset payment methods based on type
+      payment_methods: type === 'physical' 
+        ? { cod: true, online: false, bkash: false, nagad: false, rocket: false }
+        : { cod: false, online: false, bkash: true, nagad: true, rocket: false },
+      // For digital, disable address and city by default
+      address_enabled: type === 'physical',
+      city_enabled: type === 'physical',
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -162,12 +208,18 @@ export function CreateCheckoutProfileDialog({
       const profileData = {
         name: formData.name,
         shop_id: formData.shop_id,
+        profile_type: formData.profile_type,
         address_enabled: formData.address_enabled,
         city_enabled: formData.city_enabled,
         notes_enabled: formData.notes_enabled,
-        shipping_rules: JSON.parse(JSON.stringify(formData.shipping_rules)),
-        free_shipping_enabled: formData.free_shipping_enabled,
-        free_shipping_threshold: formData.free_shipping_threshold ? parseFloat(formData.free_shipping_threshold) : null,
+        shipping_rules: formData.profile_type === 'physical' 
+          ? JSON.parse(JSON.stringify(formData.shipping_rules))
+          : [],
+        free_shipping_enabled: formData.profile_type === 'physical' ? formData.free_shipping_enabled : false,
+        free_shipping_threshold: formData.profile_type === 'physical' && formData.free_shipping_threshold 
+          ? parseFloat(formData.free_shipping_threshold) 
+          : null,
+        payment_methods: JSON.parse(JSON.stringify(formData.payment_methods)),
         created_by: user?.id,
       };
 
@@ -204,7 +256,7 @@ export function CreateCheckoutProfileDialog({
         <DialogHeader>
           <DialogTitle>{profile ? 'Edit Checkout Profile' : 'Create Checkout Profile'}</DialogTitle>
           <DialogDescription>
-            Configure checkout form fields and shipping rules
+            Configure checkout form fields, payment methods, and shipping rules
           </DialogDescription>
         </DialogHeader>
 
@@ -242,6 +294,41 @@ export function CreateCheckoutProfileDialog({
             </div>
           </div>
 
+          {/* Profile Type */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">Profile Type</Label>
+            <RadioGroup 
+              value={formData.profile_type} 
+              onValueChange={(value) => handleProfileTypeChange(value as 'physical' | 'digital')}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                formData.profile_type === 'physical' ? 'border-primary bg-primary/5' : 'border-border'
+              }`}>
+                <RadioGroupItem value="physical" id="physical" />
+                <Label htmlFor="physical" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Physical Product</p>
+                    <p className="text-xs text-muted-foreground">With shipping & COD</p>
+                  </div>
+                </Label>
+              </div>
+              <div className={`flex items-center space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                formData.profile_type === 'digital' ? 'border-primary bg-primary/5' : 'border-border'
+              }`}>
+                <RadioGroupItem value="digital" id="digital" />
+                <Label htmlFor="digital" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Zap className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Digital Product</p>
+                    <p className="text-xs text-muted-foreground">Instant delivery, MFS</p>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           {/* Form Fields */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">Form Fields</Label>
@@ -277,77 +364,168 @@ export function CreateCheckoutProfileDialog({
             </div>
           </div>
 
-          {/* Shipping Rules */}
+          {/* Payment Methods */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Shipping Rules</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addShippingRule}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Rule
-              </Button>
-            </div>
+            <Label className="text-base font-semibold">Payment Methods</Label>
             
-            <div className="space-y-3">
-              {formData.shipping_rules.map((rule, index) => (
-                <div key={index} className="flex gap-3 items-center">
-                  <Input
-                    value={rule.label}
-                    onChange={(e) => updateShippingRule(index, 'label', e.target.value)}
-                    placeholder="Label (e.g., Inside Dhaka)"
-                    className="flex-1"
+            {formData.profile_type === 'physical' ? (
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <Label htmlFor="cod" className="cursor-pointer">Cash on Delivery (COD)</Label>
+                    <p className="text-xs text-muted-foreground">Pay when product is delivered</p>
+                  </div>
+                  <Switch
+                    id="cod"
+                    checked={formData.payment_methods.cod}
+                    onCheckedChange={(checked) => updatePaymentMethod('cod', checked)}
                   />
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">৳</span>
-                    <Input
-                      type="number"
-                      value={rule.cost}
-                      onChange={(e) => updateShippingRule(index, 'cost', e.target.value)}
-                      placeholder="Cost"
-                      className="w-24"
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <Label htmlFor="online" className="cursor-pointer">Online Payment</Label>
+                    <p className="text-xs text-muted-foreground">Pay online before delivery</p>
+                  </div>
+                  <Switch
+                    id="online"
+                    checked={formData.payment_methods.online}
+                    onCheckedChange={(checked) => updatePaymentMethod('online', checked)}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  Mobile Financial Services (MFS)
+                </p>
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-white text-xs font-bold">b</div>
+                      <Label htmlFor="bkash" className="cursor-pointer">bKash</Label>
+                    </div>
+                    <Switch
+                      id="bkash"
+                      checked={formData.payment_methods.bkash}
+                      onCheckedChange={(checked) => updatePaymentMethod('bkash', checked)}
                     />
                   </div>
-                  {formData.shipping_rules.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeShippingRule(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">N</div>
+                      <Label htmlFor="nagad" className="cursor-pointer">Nagad</Label>
+                    </div>
+                    <Switch
+                      id="nagad"
+                      checked={formData.payment_methods.nagad}
+                      onCheckedChange={(checked) => updatePaymentMethod('nagad', checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg border">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">R</div>
+                      <Label htmlFor="rocket" className="cursor-pointer">Rocket</Label>
+                    </div>
+                    <Switch
+                      id="rocket"
+                      checked={formData.payment_methods.rocket}
+                      onCheckedChange={(checked) => updatePaymentMethod('rocket', checked)}
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Free Shipping */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg border">
-              <div>
-                <Label htmlFor="free_shipping" className="cursor-pointer">Free Shipping</Label>
-                <p className="text-sm text-muted-foreground">Enable free shipping above threshold</p>
-              </div>
-              <Switch
-                id="free_shipping"
-                checked={formData.free_shipping_enabled}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, free_shipping_enabled: checked }))}
-              />
-            </div>
-            
-            {formData.free_shipping_enabled && (
-              <div className="grid gap-2">
-                <Label htmlFor="threshold">Free Shipping Threshold (৳)</Label>
-                <Input
-                  id="threshold"
-                  type="number"
-                  value={formData.free_shipping_threshold}
-                  onChange={(e) => setFormData(prev => ({ ...prev, free_shipping_threshold: e.target.value }))}
-                  placeholder="e.g., 1000"
-                />
               </div>
             )}
           </div>
+
+          {/* Shipping Rules - Only for Physical Products */}
+          {formData.profile_type === 'physical' && (
+            <>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Shipping Rules</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addShippingRule}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Rule
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {formData.shipping_rules.map((rule, index) => (
+                    <div key={index} className="flex gap-3 items-center">
+                      <Input
+                        value={rule.label}
+                        onChange={(e) => updateShippingRule(index, 'label', e.target.value)}
+                        placeholder="Label (e.g., Inside Dhaka)"
+                        className="flex-1"
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">৳</span>
+                        <Input
+                          type="number"
+                          value={rule.cost}
+                          onChange={(e) => updateShippingRule(index, 'cost', e.target.value)}
+                          placeholder="Cost"
+                          className="w-24"
+                        />
+                      </div>
+                      {formData.shipping_rules.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeShippingRule(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Free Shipping */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <Label htmlFor="free_shipping" className="cursor-pointer">Free Shipping</Label>
+                    <p className="text-sm text-muted-foreground">Enable free shipping above threshold</p>
+                  </div>
+                  <Switch
+                    id="free_shipping"
+                    checked={formData.free_shipping_enabled}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, free_shipping_enabled: checked }))}
+                  />
+                </div>
+                
+                {formData.free_shipping_enabled && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="threshold">Free Shipping Threshold (৳)</Label>
+                    <Input
+                      id="threshold"
+                      type="number"
+                      value={formData.free_shipping_threshold}
+                      onChange={(e) => setFormData(prev => ({ ...prev, free_shipping_threshold: e.target.value }))}
+                      placeholder="e.g., 1000"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Digital Product Notice */}
+          {formData.profile_type === 'digital' && (
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 text-primary">
+                <Zap className="h-5 w-5" />
+                <span className="font-medium">Instant Digital Delivery</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Digital products will be delivered instantly after payment confirmation via email or download link.
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
