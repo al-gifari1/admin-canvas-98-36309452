@@ -20,8 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { FolderOpen } from 'lucide-react';
-import { GalleryPickerDialog } from '@/components/gallery/GalleryPickerDialog';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface Shop {
   id: string;
@@ -33,9 +32,13 @@ interface Product {
   name: string;
   slug: string | null;
   price: number;
+  sale_price?: number | null;
   main_image: string | null;
   short_description: string | null;
   shop_id: string;
+  product_type?: string;
+  sizes?: string[] | null;
+  download_url?: string | null;
 }
 
 interface CreateProductDialogProps {
@@ -54,16 +57,18 @@ export function CreateProductDialog({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
   
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     short_description: '',
     price: '',
+    sale_price: '',
     main_image: '',
     shop_id: '',
+    product_type: 'physical',
+    sizes: '',
+    download_url: '',
   });
 
   useEffect(() => {
@@ -75,8 +80,12 @@ export function CreateProductDialog({
           slug: product.slug || '',
           short_description: product.short_description || '',
           price: product.price.toString(),
+          sale_price: product.sale_price?.toString() || '',
           main_image: product.main_image || '',
           shop_id: product.shop_id,
+          product_type: product.product_type || 'physical',
+          sizes: product.sizes?.join(', ') || '',
+          download_url: product.download_url || '',
         });
       } else {
         resetForm();
@@ -90,8 +99,12 @@ export function CreateProductDialog({
       slug: '',
       short_description: '',
       price: '',
+      sale_price: '',
       main_image: '',
       shop_id: '',
+      product_type: 'physical',
+      sizes: '',
+      download_url: '',
     });
   };
 
@@ -107,7 +120,6 @@ export function CreateProductDialog({
       if (error) throw error;
       setShops(data || []);
       
-      // Set default shop if only one exists
       if (data && data.length === 1 && !formData.shop_id) {
         setFormData(prev => ({ ...prev, shop_id: data[0].id }));
       }
@@ -131,6 +143,15 @@ export function CreateProductDialog({
     }));
   };
 
+  const calculateDiscount = () => {
+    const price = parseFloat(formData.price);
+    const salePrice = parseFloat(formData.sale_price);
+    if (price && salePrice && salePrice < price) {
+      return Math.round(((price - salePrice) / price) * 100);
+    }
+    return 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -142,20 +163,27 @@ export function CreateProductDialog({
     setLoading(true);
 
     try {
+      const sizesArray = formData.sizes 
+        ? formData.sizes.split(',').map(s => s.trim()).filter(Boolean)
+        : null;
+
       const productData = {
         name: formData.name,
         slug: formData.slug || generateSlug(formData.name),
         short_description: formData.short_description || null,
         description: formData.short_description || null,
         price: parseFloat(formData.price) || 0,
+        sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
         main_image: formData.main_image || null,
         shop_id: formData.shop_id,
+        product_type: formData.product_type,
+        sizes: sizesArray,
+        download_url: formData.product_type === 'digital' ? formData.download_url : null,
         owner_type: 'developer',
         created_by: user?.id,
       };
 
       if (product) {
-        // Update existing product
         const { error } = await supabase
           .from('products')
           .update(productData)
@@ -164,7 +192,6 @@ export function CreateProductDialog({
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Create new product
         const { error } = await supabase
           .from('products')
           .insert(productData);
@@ -174,6 +201,7 @@ export function CreateProductDialog({
       }
 
       onSuccess();
+      onOpenChange(false);
     } catch (error: any) {
       console.error('Error saving product:', error);
       toast.error(error.message || 'Failed to save product');
@@ -181,6 +209,8 @@ export function CreateProductDialog({
       setLoading(false);
     }
   };
+
+  const discount = calculateDiscount();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,6 +244,23 @@ export function CreateProductDialog({
               </Select>
             </div>
 
+            {/* Product Type */}
+            <div className="grid gap-2">
+              <Label>Product Type *</Label>
+              <Select 
+                value={formData.product_type} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physical">Physical Product</SelectItem>
+                  <SelectItem value="digital">Digital Product</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Product Name */}
             <div className="grid gap-2">
               <Label htmlFor="name">Product Name *</Label>
@@ -226,17 +273,36 @@ export function CreateProductDialog({
               />
             </div>
 
-            {/* Selling Price */}
-            <div className="grid gap-2">
-              <Label htmlFor="price">Price *</Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                placeholder="0"
-                required
-              />
+            {/* Pricing */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="price">Regular Price *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="sale_price">
+                  Sale Price
+                  {discount > 0 && (
+                    <span className="ml-2 text-xs text-emerald-600 font-medium">
+                      ({discount}% off)
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id="sale_price"
+                  type="number"
+                  value={formData.sale_price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sale_price: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
             </div>
 
             {/* Description */}
@@ -251,34 +317,41 @@ export function CreateProductDialog({
               />
             </div>
 
+            {/* Sizes - Only for Physical */}
+            {formData.product_type === 'physical' && (
+              <div className="grid gap-2">
+                <Label htmlFor="sizes">Sizes</Label>
+                <Input
+                  id="sizes"
+                  value={formData.sizes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sizes: e.target.value }))}
+                  placeholder="S, M, L, XL (comma separated)"
+                />
+                <p className="text-xs text-muted-foreground">Enter sizes separated by commas</p>
+              </div>
+            )}
+
+            {/* Download URL - Only for Digital */}
+            {formData.product_type === 'digital' && (
+              <div className="grid gap-2">
+                <Label htmlFor="download_url">Download Link</Label>
+                <Input
+                  id="download_url"
+                  value={formData.download_url}
+                  onChange={(e) => setFormData(prev => ({ ...prev, download_url: e.target.value }))}
+                  placeholder="https://..."
+                />
+              </div>
+            )}
+
             {/* Product Image */}
             <div className="grid gap-2">
               <Label>Product Image</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={formData.main_image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, main_image: e.target.value }))}
-                  placeholder="Image URL"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setGalleryPickerOpen(true)}
-                >
-                  <FolderOpen className="h-4 w-4 mr-2" />
-                  Browse
-                </Button>
-              </div>
-              {formData.main_image && (
-                <div className="mt-2 relative w-32 h-32 rounded-lg overflow-hidden border">
-                  <img 
-                    src={formData.main_image} 
-                    alt="Preview" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              <ImageUpload
+                value={formData.main_image}
+                onChange={(url) => setFormData(prev => ({ ...prev, main_image: url }))}
+                bucket="product-images"
+              />
             </div>
           </div>
 
@@ -295,16 +368,6 @@ export function CreateProductDialog({
             </Button>
           </div>
         </form>
-
-        <GalleryPickerDialog
-          open={galleryPickerOpen}
-          onOpenChange={setGalleryPickerOpen}
-          onSelect={(url) => {
-            setFormData(prev => ({ ...prev, main_image: url }));
-            setGalleryPickerOpen(false);
-          }}
-          shopId={formData.shop_id}
-        />
       </DialogContent>
     </Dialog>
   );
