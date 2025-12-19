@@ -180,6 +180,19 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
     setSelectedBlockId(newBlock.id);
   };
 
+  // Import multiple blocks from library at specific index
+  const handleImportBlocks = (importedBlocks: Block[], index: number) => {
+    setBlocks((prev) => {
+      const newBlocks = [...prev];
+      newBlocks.splice(index, 0, ...importedBlocks);
+      return newBlocks;
+    });
+    // Select the first imported block
+    if (importedBlocks.length > 0) {
+      setSelectedBlockId(importedBlocks[0].id);
+    }
+  };
+
   const handleDeleteBlock = useCallback((blockId: string) => {
     setBlocks((prev) => prev.filter((b) => b.id !== blockId));
     if (selectedBlockId === blockId) {
@@ -372,6 +385,7 @@ export function PageBuilder({ pageId, onBack }: PageBuilderProps) {
               }
             }}
             onAddBlock={handleAddBlock}
+            onImportBlocks={handleImportBlocks}
             viewMode={viewMode}
           />
 
