@@ -21,11 +21,21 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { Plus, Trash2, Package, Smartphone, Zap } from 'lucide-react';
+import { Plus, Trash2, Package, Smartphone, Zap, Check, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 interface Shop {
   id: string;
   name: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  main_image: string | null;
 }
 
 interface ShippingRule {
@@ -79,6 +89,8 @@ export function CreateCheckoutProfileDialog({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [shops, setShops] = useState<Shop[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -109,11 +121,23 @@ export function CreateCheckoutProfileDialog({
           free_shipping_threshold: profile.free_shipping_threshold?.toString() || '',
           payment_methods: profile.payment_methods || { ...defaultPaymentMethods },
         });
+        // TODO: Load selected products for edit mode if needed
       } else {
         resetForm();
+        setSelectedProductIds([]);
       }
     }
   }, [open, profile]);
+
+  // Fetch products when shop changes
+  useEffect(() => {
+    if (formData.shop_id) {
+      fetchProducts(formData.shop_id);
+    } else {
+      setProducts([]);
+      setSelectedProductIds([]);
+    }
+  }, [formData.shop_id]);
 
   const resetForm = () => {
     setFormData({
@@ -128,6 +152,35 @@ export function CreateCheckoutProfileDialog({
       free_shipping_threshold: '',
       payment_methods: { ...defaultPaymentMethods },
     });
+    setSelectedProductIds([]);
+  };
+
+  const fetchProducts = async (shopId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, main_image')
+        .eq('shop_id', shopId)
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProductIds(prev => 
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const removeProduct = (productId: string) => {
+    setSelectedProductIds(prev => prev.filter(id => id !== productId));
   };
 
   const fetchShops = async () => {
@@ -293,6 +346,79 @@ export function CreateCheckoutProfileDialog({
               />
             </div>
           </div>
+
+          {/* Products Selection */}
+          {formData.shop_id && (
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Products in Offer</Label>
+              <p className="text-sm text-muted-foreground">
+                Select products for this checkout profile
+              </p>
+
+              {/* Selected Products */}
+              {selectedProductIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-muted/50 border">
+                  {selectedProductIds.map(id => {
+                    const product = products.find(p => p.id === id);
+                    return product ? (
+                      <Badge key={id} variant="secondary" className="flex items-center gap-1 pr-1">
+                        {product.name}
+                        <button
+                          type="button"
+                          onClick={() => removeProduct(id)}
+                          className="ml-1 rounded-full hover:bg-destructive/20 p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
+              {/* Products List */}
+              <ScrollArea className="h-40 rounded-lg border">
+                <div className="p-2 space-y-1">
+                  {products.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No products found for this shop
+                    </p>
+                  ) : (
+                    products.map(product => (
+                      <div
+                        key={product.id}
+                        onClick={() => toggleProductSelection(product.id)}
+                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                          selectedProductIds.includes(product.id)
+                            ? 'bg-primary/10'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={selectedProductIds.includes(product.id)}
+                          onCheckedChange={() => toggleProductSelection(product.id)}
+                        />
+                        {product.main_image && (
+                          <img
+                            src={product.main_image}
+                            alt={product.name}
+                            className="w-8 h-8 rounded object-cover"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">৳{product.price}</p>
+                        </div>
+                        {selectedProductIds.includes(product.id) && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
 
           {/* Profile Type */}
           <div className="space-y-4">
