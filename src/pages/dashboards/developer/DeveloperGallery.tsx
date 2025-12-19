@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +43,11 @@ import {
   List,
   Search,
   X,
+  FolderInput,
+  CheckSquare,
 } from 'lucide-react';
+import { UploadDialog } from '@/components/gallery/UploadDialog';
+import { MoveToFolderDialog } from '@/components/gallery/MoveToFolderDialog';
 
 interface Shop {
   id: string;
@@ -80,14 +85,19 @@ export default function DeveloperGallery() {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
   
   // Dialog states
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [previewImage, setPreviewImage] = useState<MediaFile | null>(null);
   const [renamingFolder, setRenamingFolder] = useState<MediaFolder | null>(null);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+
+  // Bulk selection state
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
 
   useEffect(() => {
     fetchShops();
@@ -96,8 +106,18 @@ export default function DeveloperGallery() {
   useEffect(() => {
     if (selectedShopId) {
       fetchContent();
+      // Clear selection when navigating
+      setSelectedFiles(new Set());
+      setSelectedFolders(new Set());
     }
   }, [selectedShopId, currentFolderId]);
+
+  // Reset folder name when dialog opens
+  useEffect(() => {
+    if (createFolderOpen) {
+      setNewFolderName('');
+    }
+  }, [createFolderOpen]);
 
   const fetchShops = async () => {
     if (!user) return;
@@ -120,7 +140,6 @@ export default function DeveloperGallery() {
     if (!selectedShopId) return;
     setLoading(true);
     try {
-      // Fetch folders
       const { data: foldersData, error: foldersError } = await supabase
         .from('media_folders')
         .select('*')
@@ -131,7 +150,6 @@ export default function DeveloperGallery() {
       if (foldersError) throw foldersError;
       setFolders(foldersData || []);
 
-      // Fetch files
       const { data: filesData, error: filesError } = await supabase
         .from('media_files')
         .select('*')
@@ -227,45 +245,31 @@ export default function DeveloperGallery() {
     }
   };
 
-  const handleFileUpload = async (fileList: FileList | File[]) => {
+  const handleUpload = async (filesToUpload: { file: File | Blob; name: string }[]) => {
     if (!selectedShopId || !user) return;
-    
-    const filesToUpload = Array.from(fileList).filter(file => 
-      file.type.startsWith('image/')
-    );
-
-    if (filesToUpload.length === 0) {
-      toast.error('Please select image files only');
-      return;
-    }
-
-    setUploadingFiles(true);
 
     try {
-      for (const file of filesToUpload) {
-        const fileExt = file.name.split('.').pop();
+      for (const { file, name } of filesToUpload) {
+        const fileExt = name.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${selectedShopId}/${currentFolderId || 'root'}/${fileName}`;
 
-        // Upload to storage
         const { error: uploadError } = await supabase.storage
           .from('builder-assets')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from('builder-assets')
           .getPublicUrl(filePath);
 
-        // Save to database
         const { error: dbError } = await supabase.from('media_files').insert({
-          name: file.name,
+          name,
           file_path: filePath,
           file_url: urlData.publicUrl,
-          file_size: file.size,
-          mime_type: file.type,
+          file_size: file instanceof File ? file.size : (file as Blob).size,
+          mime_type: file instanceof File ? file.type : 'image/webp',
           folder_id: currentFolderId,
           shop_id: selectedShopId,
           created_by: user.id,
@@ -279,8 +283,7 @@ export default function DeveloperGallery() {
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error.message || 'Failed to upload files');
-    } finally {
-      setUploadingFiles(false);
+      throw error;
     }
   };
 
@@ -288,12 +291,10 @@ export default function DeveloperGallery() {
     if (!confirm(`Delete "${file.name}"?`)) return;
     
     try {
-      // Delete from storage
       await supabase.storage
         .from('builder-assets')
         .remove([file.file_path]);
 
-      // Delete from database
       const { error } = await supabase
         .from('media_files')
         .delete()
@@ -312,25 +313,97 @@ export default function DeveloperGallery() {
     toast.success('Link copied to clipboard');
   };
 
-  // Drag and drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
+  // Bulk selection handlers
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.add(fileId);
+      }
+      return newSet;
+    });
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
+  const toggleFolderSelection = (folderId: string) => {
+    setSelectedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileUpload(files);
+  const selectAll = () => {
+    setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
+    setSelectedFolders(new Set(filteredFolders.map(f => f.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedFiles(new Set());
+    setSelectedFolders(new Set());
+    setSelectionMode(false);
+  };
+
+  const bulkDelete = async () => {
+    const totalCount = selectedFiles.size + selectedFolders.size;
+    if (!confirm(`Delete ${totalCount} selected item(s)?`)) return;
+
+    try {
+      // Delete files
+      for (const fileId of selectedFiles) {
+        const file = files.find(f => f.id === fileId);
+        if (file) {
+          await supabase.storage.from('builder-assets').remove([file.file_path]);
+          await supabase.from('media_files').delete().eq('id', fileId);
+        }
+      }
+
+      // Delete folders
+      for (const folderId of selectedFolders) {
+        await supabase.from('media_folders').delete().eq('id', folderId);
+      }
+
+      toast.success(`${totalCount} item(s) deleted`);
+      clearSelection();
+      fetchContent();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete items');
     }
-  }, [selectedShopId, currentFolderId, user]);
+  };
+
+  const handleMoveItems = async (targetFolderId: string | null) => {
+    try {
+      // Move files
+      if (selectedFiles.size > 0) {
+        const { error: filesError } = await supabase
+          .from('media_files')
+          .update({ folder_id: targetFolderId })
+          .in('id', Array.from(selectedFiles));
+        if (filesError) throw filesError;
+      }
+
+      // Move folders (only if not moving to itself or child)
+      if (selectedFolders.size > 0) {
+        const { error: foldersError } = await supabase
+          .from('media_folders')
+          .update({ parent_id: targetFolderId })
+          .in('id', Array.from(selectedFolders));
+        if (foldersError) throw foldersError;
+      }
+
+      toast.success(`${selectedFiles.size + selectedFolders.size} item(s) moved`);
+      clearSelection();
+      fetchContent();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to move items');
+      throw error;
+    }
+  };
 
   const filteredFolders = folders.filter(f => 
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -346,6 +419,9 @@ export default function DeveloperGallery() {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  const hasSelection = selectedFiles.size > 0 || selectedFolders.size > 0;
+  const totalSelected = selectedFiles.size + selectedFolders.size;
 
   return (
     <div className="space-y-6">
@@ -384,20 +460,22 @@ export default function DeveloperGallery() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => document.getElementById('file-upload')?.click()}
-            disabled={uploadingFiles}
+            onClick={() => setUploadDialogOpen(true)}
           >
             <Upload className="h-4 w-4 mr-1" />
-            {uploadingFiles ? 'Uploading...' : 'Upload'}
+            Upload
           </Button>
-          <input
-            id="file-upload"
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-          />
+          <Button
+            variant={selectionMode ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setSelectionMode(!selectionMode);
+              if (selectionMode) clearSelection();
+            }}
+          >
+            <CheckSquare className="h-4 w-4 mr-1" />
+            Select
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -418,6 +496,30 @@ export default function DeveloperGallery() {
           </Button>
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      {hasSelection && (
+        <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+          <span className="text-sm font-medium">{totalSelected} selected</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={selectAll}>
+              Select All
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(true)}>
+              <FolderInput className="h-4 w-4 mr-1" />
+              Move
+            </Button>
+            <Button variant="destructive" size="sm" onClick={bulkDelete}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-1 text-sm">
@@ -444,21 +546,9 @@ export default function DeveloperGallery() {
         ))}
       </div>
 
-      {/* Drop Zone */}
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`min-h-[400px] border-2 border-dashed rounded-lg transition-colors ${
-          isDragging ? 'border-primary bg-primary/5' : 'border-border'
-        }`}
-      >
-        {isDragging ? (
-          <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
-            <Upload className="h-12 w-12 mb-4" />
-            <p className="text-lg font-medium">Drop images here to upload</p>
-          </div>
-        ) : loading ? (
+      {/* Content Area */}
+      <div className="min-h-[400px] border rounded-lg">
+        {loading ? (
           <div className="flex items-center justify-center h-[400px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
@@ -466,161 +556,197 @@ export default function DeveloperGallery() {
           <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
             <ImageIcon className="h-12 w-12 mb-4" />
             <p className="text-lg font-medium">No files or folders</p>
-            <p className="text-sm">Create a folder or drag images to upload</p>
+            <p className="text-sm">Create a folder or upload images</p>
           </div>
         ) : (
           <div className={`p-4 ${viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4' : 'space-y-2'}`}>
             {/* Folders */}
-            {filteredFolders.map(folder => (
-              <div
-                key={folder.id}
-                className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
-              >
-                {viewMode === 'grid' ? (
-                  <Card
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => navigateToFolder(folder)}
-                  >
-                    <CardContent className="p-4 flex flex-col items-center">
-                      <Folder className="h-12 w-12 text-primary mb-2" />
-                      <p className="text-sm font-medium truncate w-full text-center">{folder.name}</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <Folder className="h-5 w-5 text-primary" />
-                    <span
-                      className="flex-1 cursor-pointer hover:text-primary"
-                      onClick={() => navigateToFolder(folder)}
+            {filteredFolders.map(folder => {
+              const isSelected = selectedFolders.has(folder.id);
+              return (
+                <div
+                  key={folder.id}
+                  className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
+                >
+                  {selectionMode && (
+                    <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleFolderSelection(folder.id)}
+                      />
+                    </div>
+                  )}
+                  {viewMode === 'grid' ? (
+                    <Card
+                      className={`cursor-pointer transition-colors ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
+                      onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
                     >
-                      {folder.name}
-                    </span>
-                  </>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`${viewMode === 'grid' ? 'absolute top-1 right-1 opacity-0 group-hover:opacity-100' : ''}`}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {
-                      setRenamingFolder(folder);
-                      setNewFolderName(folder.name);
-                    }}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => deleteFolder(folder)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
+                      <CardContent className="p-4 flex flex-col items-center">
+                        <Folder className="h-12 w-12 text-primary mb-2" />
+                        <p className="text-sm font-medium truncate w-full text-center">{folder.name}</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <Folder className="h-5 w-5 text-primary" />
+                      <span
+                        className="flex-1 cursor-pointer hover:text-primary"
+                        onClick={() => selectionMode ? toggleFolderSelection(folder.id) : navigateToFolder(folder)}
+                      >
+                        {folder.name}
+                      </span>
+                    </>
+                  )}
+                  {!selectionMode && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`${viewMode === 'grid' ? 'absolute top-1 right-1 opacity-0 group-hover:opacity-100' : ''}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setRenamingFolder(folder);
+                          setNewFolderName(folder.name);
+                        }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => deleteFolder(folder)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Files */}
-            {filteredFiles.map(file => (
-              <div
-                key={file.id}
-                className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
-              >
-                {viewMode === 'grid' ? (
-                  <Card className="cursor-pointer hover:border-primary transition-colors overflow-hidden">
-                    <CardContent className="p-0 relative">
+            {filteredFiles.map(file => {
+              const isSelected = selectedFiles.has(file.id);
+              return (
+                <div
+                  key={file.id}
+                  className={`group relative ${viewMode === 'grid' ? '' : 'flex items-center gap-3 p-2 rounded-lg hover:bg-muted'}`}
+                >
+                  {selectionMode && (
+                    <div className={`${viewMode === 'grid' ? 'absolute top-2 left-2 z-10' : ''}`}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleFileSelection(file.id)}
+                      />
+                    </div>
+                  )}
+                  {viewMode === 'grid' ? (
+                    <Card 
+                      className={`cursor-pointer transition-colors overflow-hidden ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary'}`}
+                      onClick={() => selectionMode && toggleFileSelection(file.id)}
+                    >
+                      <CardContent className="p-0 relative">
+                        <img
+                          src={file.file_url}
+                          alt={file.name}
+                          className="w-full h-32 object-cover"
+                        />
+                        {!selectionMode && (
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-white hover:bg-white/20"
+                              onClick={(e) => { e.stopPropagation(); copyLink(file.file_url); }}
+                            >
+                              <Copy className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-white hover:bg-white/20"
+                              onClick={(e) => { e.stopPropagation(); setPreviewImage(file); }}
+                            >
+                              <Eye className="h-5 w-5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-white hover:bg-white/20"
+                              onClick={(e) => { e.stopPropagation(); deleteFile(file); }}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
+                        )}
+                        <div className="p-2">
+                          <p className="text-xs truncate">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
                       <img
                         src={file.file_url}
                         alt={file.name}
-                        className="w-full h-32 object-cover"
+                        className="w-10 h-10 object-cover rounded"
                       />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-white hover:bg-white/20"
-                          onClick={() => copyLink(file.file_url)}
-                        >
-                          <Copy className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-white hover:bg-white/20"
-                          onClick={() => setPreviewImage(file)}
-                        >
-                          <Eye className="h-5 w-5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-white hover:bg-white/20"
-                          onClick={() => deleteFile(file)}
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs truncate">{file.name}</p>
+                      <div 
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => selectionMode && toggleFileSelection(file.id)}
+                      >
+                        <p className="text-sm truncate">{file.name}</p>
                         <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <img
-                      src={file.file_url}
-                      alt={file.name}
-                      className="w-10 h-10 object-cover rounded"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(file.file_size)}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => copyLink(file.file_url)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setPreviewImage(file)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteFile(file)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                      {!selectionMode && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => copyLink(file.file_url)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setPreviewImage(file)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteFile(file)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Create Folder Dialog */}
+      {/* Create Folder Dialog - Fixed with autoFocus and path indicator */}
       <Dialog open={createFolderOpen} onOpenChange={setCreateFolderOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
-            <DialogDescription>Enter a name for the new folder</DialogDescription>
+            <DialogDescription>
+              Creating in: {folderPath.length > 0 ? folderPath.map(f => f.name).join(' / ') : 'Root'}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -630,6 +756,7 @@ export default function DeveloperGallery() {
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="My Folder"
+                autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && createFolder()}
               />
             </div>
@@ -660,6 +787,7 @@ export default function DeveloperGallery() {
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="My Folder"
+                autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && renameFolder()}
               />
             </div>
@@ -703,6 +831,24 @@ export default function DeveloperGallery() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload Dialog */}
+      <UploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onUpload={handleUpload}
+      />
+
+      {/* Move to Folder Dialog */}
+      <MoveToFolderDialog
+        open={moveDialogOpen}
+        onOpenChange={setMoveDialogOpen}
+        shopId={selectedShopId}
+        currentFolderId={currentFolderId}
+        selectedCount={totalSelected}
+        onMove={handleMoveItems}
+        excludeFolderIds={Array.from(selectedFolders)}
+      />
     </div>
   );
 }
