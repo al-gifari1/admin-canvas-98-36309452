@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
-import { Block, HeadingContent, ButtonContent } from '@/types/builder';
-import { 
+import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue } from '@/types/builder';
+import {
   icons, 
   LucideIcon, 
   HelpCircle, 
@@ -452,9 +452,178 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
       return <div className="p-4"><div className="aspect-[16/9] bg-muted rounded-lg flex items-center justify-center max-w-4xl mx-auto relative overflow-hidden">{slides.length > 0 && slides[0].imageUrl ? <img src={slides[0].imageUrl} alt={slides[0].title} className="w-full h-full object-cover" /> : <GalleryHorizontal className="h-12 w-12 text-muted-foreground" />}</div></div>;
     }
     case 'container': {
-      const { padding, maxWidth, backgroundColor } = block.content.container || { padding: 16, maxWidth: 'lg', backgroundColor: 'transparent' };
-      const maxWidthClasses: Record<string, string> = { full: 'max-w-full', lg: 'max-w-6xl', md: 'max-w-4xl', sm: 'max-w-2xl' };
-      return <div className={`${maxWidthClasses[maxWidth]} mx-auto`} style={{ padding, backgroundColor }}><div className="border-2 border-dashed border-border rounded-lg p-8 text-center text-muted-foreground min-h-[100px]"><Square className="h-8 w-8 mx-auto mb-2" /><p className="text-sm">Container</p></div></div>;
+      const rawContainer = block.content.container;
+      
+      // Handle legacy format migration
+      const isLegacy = rawContainer && 'backgroundColor' in rawContainer && !('layout' in rawContainer);
+      
+      const defaultContainer: ContainerContent = {
+        layout: {
+          displayType: 'grid',
+          columns: { desktop: 4, tablet: 2, mobile: 1 },
+          rows: 'auto',
+          columnGap: { desktop: 20, tablet: 16, mobile: 12 },
+          rowGap: { desktop: 20, tablet: 16, mobile: 12 },
+          justifyItems: 'stretch',
+          alignItems: 'stretch',
+          justifyContent: 'start',
+          alignContent: 'start',
+        },
+        background: { type: 'solid', color: 'transparent' },
+        border: {
+          style: 'none',
+          width: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          color: '#e5e7eb',
+          radius: { topLeft: 0, topRight: 0, bottomRight: 0, bottomLeft: 0, linked: true },
+        },
+        shadow: { enabled: false, horizontal: 0, vertical: 4, blur: 6, spread: 0, color: 'rgba(0,0,0,0.1)' },
+        advanced: {
+          margin: { top: 0, right: 0, bottom: 0, left: 0, linked: true },
+          padding: { top: 16, right: 16, bottom: 16, left: 16, linked: true },
+          maxWidth: 'lg',
+          responsive: { hideOnDesktop: false, hideOnTablet: false, hideOnMobile: false },
+        },
+      };
+      
+      // Migrate legacy container
+      const container: ContainerContent = isLegacy 
+        ? {
+            ...defaultContainer,
+            background: { type: 'solid', color: (rawContainer as any).backgroundColor || 'transparent' },
+            advanced: {
+              ...defaultContainer.advanced,
+              padding: {
+                top: (rawContainer as any).padding || 16,
+                right: (rawContainer as any).padding || 16,
+                bottom: (rawContainer as any).padding || 16,
+                left: (rawContainer as any).padding || 16,
+                linked: true,
+              },
+              maxWidth: (rawContainer as any).maxWidth || 'lg',
+            },
+          }
+        : { ...defaultContainer, ...(rawContainer as ContainerContent) };
+      
+      const { layout, background, border, shadow, advanced } = container;
+      
+      // Max width classes
+      const maxWidthClasses: Record<string, string> = { 
+        full: 'max-w-full', 
+        lg: 'max-w-6xl', 
+        md: 'max-w-4xl', 
+        sm: 'max-w-2xl' 
+      };
+      
+      // Build container styles
+      const containerStyles: CSSProperties = {
+        // Padding
+        paddingTop: `${advanced.padding.top}px`,
+        paddingRight: `${advanced.padding.right}px`,
+        paddingBottom: `${advanced.padding.bottom}px`,
+        paddingLeft: `${advanced.padding.left}px`,
+        // Margin
+        marginTop: `${advanced.margin.top}px`,
+        marginRight: advanced.maxWidth === 'full' ? `${advanced.margin.right}px` : 'auto',
+        marginBottom: `${advanced.margin.bottom}px`,
+        marginLeft: advanced.maxWidth === 'full' ? `${advanced.margin.left}px` : 'auto',
+        // Custom max width
+        ...(advanced.maxWidth === 'custom' && advanced.customMaxWidth ? { maxWidth: `${advanced.customMaxWidth}px` } : {}),
+        // Z-Index
+        ...(advanced.zIndex ? { zIndex: advanced.zIndex } : {}),
+      };
+      
+      // Background
+      if (background.type === 'solid' && background.color && background.color !== 'transparent') {
+        containerStyles.backgroundColor = background.color;
+      } else if (background.type === 'gradient' && background.gradient) {
+        const { angle = 90, stops } = background.gradient;
+        const gradientStops = stops.map(s => `${s.color} ${s.position}%`).join(', ');
+        containerStyles.background = `linear-gradient(${angle}deg, ${gradientStops})`;
+      } else if (background.type === 'image' && background.image?.url) {
+        containerStyles.backgroundImage = `url(${background.image.url})`;
+        containerStyles.backgroundSize = background.image.size === 'repeat' ? 'auto' : background.image.size;
+        containerStyles.backgroundRepeat = background.image.size === 'repeat' ? 'repeat' : 'no-repeat';
+        containerStyles.backgroundPosition = background.image.position || 'center';
+      }
+      
+      // Border
+      if (border.style !== 'none') {
+        containerStyles.borderStyle = border.style;
+        containerStyles.borderTopWidth = `${border.width.top}px`;
+        containerStyles.borderRightWidth = `${border.width.right}px`;
+        containerStyles.borderBottomWidth = `${border.width.bottom}px`;
+        containerStyles.borderLeftWidth = `${border.width.left}px`;
+        containerStyles.borderColor = border.color;
+      }
+      containerStyles.borderTopLeftRadius = `${border.radius.topLeft}px`;
+      containerStyles.borderTopRightRadius = `${border.radius.topRight}px`;
+      containerStyles.borderBottomRightRadius = `${border.radius.bottomRight}px`;
+      containerStyles.borderBottomLeftRadius = `${border.radius.bottomLeft}px`;
+      
+      // Shadow
+      if (shadow.enabled) {
+        containerStyles.boxShadow = `${shadow.horizontal}px ${shadow.vertical}px ${shadow.blur}px ${shadow.spread}px ${shadow.color}`;
+      }
+      
+      // Grid styles
+      const gridStyles: CSSProperties = {
+        display: layout.displayType,
+        gridTemplateColumns: layout.displayType === 'grid' ? `repeat(${layout.columns.desktop}, 1fr)` : undefined,
+        gridTemplateRows: layout.rows === 'auto' ? undefined : `repeat(${layout.rows}, 1fr)`,
+        gap: `${layout.rowGap.desktop}px ${layout.columnGap.desktop}px`,
+        justifyItems: layout.justifyItems,
+        alignItems: layout.alignItems,
+        justifyContent: layout.justifyContent === 'between' ? 'space-between' : 
+                        layout.justifyContent === 'around' ? 'space-around' : 
+                        layout.justifyContent === 'evenly' ? 'space-evenly' : 
+                        layout.justifyContent,
+        alignContent: layout.alignContent === 'between' ? 'space-between' : 
+                      layout.alignContent === 'around' ? 'space-around' : 
+                      layout.alignContent,
+        minHeight: '100px',
+      };
+      
+      // Flex specific styles
+      if (layout.displayType === 'flex') {
+        gridStyles.flexWrap = 'wrap';
+      }
+      
+      // Responsive visibility classes
+      const visibilityClasses: string[] = [];
+      if (advanced.responsive.hideOnDesktop) visibilityClasses.push('lg:hidden');
+      if (advanced.responsive.hideOnTablet) visibilityClasses.push('md:hidden lg:block');
+      if (advanced.responsive.hideOnMobile) visibilityClasses.push('max-md:hidden');
+      
+      const customProps: Record<string, string> = {};
+      if (advanced.cssId) customProps.id = advanced.cssId;
+      
+      return (
+        <div 
+          className={`${advanced.maxWidth !== 'custom' ? maxWidthClasses[advanced.maxWidth] || '' : ''} ${visibilityClasses.join(' ')} ${advanced.cssClasses || ''}`}
+          style={containerStyles}
+          {...customProps}
+        >
+          <div style={gridStyles} className="relative">
+            {/* Grid visualization in editor - dashed lines */}
+            <div className="absolute inset-0 pointer-events-none opacity-50" style={{
+              backgroundImage: `
+                linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+                linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
+              `,
+              backgroundSize: `calc(100% / ${layout.columns.desktop}) calc(100% / ${layout.rows === 'auto' ? 1 : layout.rows})`,
+            }} />
+            {/* Placeholder cells */}
+            {Array.from({ length: layout.columns.desktop }).map((_, i) => (
+              <div 
+                key={i} 
+                className="border-2 border-dashed border-border rounded-lg p-4 text-center text-muted-foreground min-h-[80px] flex items-center justify-center bg-muted/20"
+              >
+                <p className="text-xs">Drop widget here</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
     }
     case 'grid': {
       const { columns, gap } = block.content.grid || { columns: 3, gap: 16 };
