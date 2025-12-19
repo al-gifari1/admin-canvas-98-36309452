@@ -1,5 +1,7 @@
 import { CSSProperties } from 'react';
-import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue } from '@/types/builder';
+import { Block, HeadingContent, ButtonContent, ContainerContent, ResponsiveValue, FlexContainerContent, SmartGridContent } from '@/types/builder';
+import { FlexContainerRenderer } from './FlexContainerRenderer';
+import { SmartGridRenderer } from './SmartGridRenderer';
 import {
   icons, 
   LucideIcon, 
@@ -683,6 +685,12 @@ export function WidgetRenderer({ block }: WidgetRendererProps) {
           </div>
         </div>
       );
+    }
+    case 'flex-container': {
+      return <FlexContainerRenderer block={block} />;
+    }
+    case 'smart-grid': {
+      return <SmartGridRenderer block={block} />;
     }
     case 'grid': {
       const { columns, gap } = block.content.grid || { columns: 3, gap: 16 };
