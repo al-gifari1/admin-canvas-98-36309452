@@ -25,7 +25,9 @@ import {
   Trash2,
   CreditCard,
   MapPin,
-  Truck
+  Truck,
+  Package,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreateCheckoutProfileDialog } from '@/components/developer/CreateCheckoutProfileDialog';
@@ -35,16 +37,26 @@ interface ShippingRule {
   cost: number;
 }
 
+interface PaymentMethods {
+  cod: boolean;
+  online: boolean;
+  bkash: boolean;
+  nagad: boolean;
+  rocket: boolean;
+}
+
 interface CheckoutProfile {
   id: string;
   name: string;
   shop_id: string;
+  profile_type: 'physical' | 'digital';
   address_enabled: boolean;
   city_enabled: boolean;
   notes_enabled: boolean;
   shipping_rules: ShippingRule[];
   free_shipping_enabled: boolean;
   free_shipping_threshold: number | null;
+  payment_methods: PaymentMethods;
   shop?: { name: string };
 }
 
@@ -74,10 +86,14 @@ export function DeveloperCheckout() {
 
       if (error) throw error;
       
-      // Parse shipping_rules from JSON
+      // Parse shipping_rules and payment_methods from JSON
       const parsed = (data || []).map(p => ({
         ...p,
-        shipping_rules: (p.shipping_rules as unknown as ShippingRule[]) || []
+        profile_type: (p.profile_type || 'physical') as 'physical' | 'digital',
+        shipping_rules: (p.shipping_rules as unknown as ShippingRule[]) || [],
+        payment_methods: (p.payment_methods as unknown as PaymentMethods) || {
+          cod: true, online: false, bkash: false, nagad: false, rocket: false
+        }
       }));
       
       setProfiles(parsed);
@@ -116,13 +132,23 @@ export function DeveloperCheckout() {
     return count;
   };
 
+  const getActivePaymentMethods = (profile: CheckoutProfile) => {
+    const methods = [];
+    if (profile.payment_methods?.cod) methods.push('COD');
+    if (profile.payment_methods?.online) methods.push('Online');
+    if (profile.payment_methods?.bkash) methods.push('bKash');
+    if (profile.payment_methods?.nagad) methods.push('Nagad');
+    if (profile.payment_methods?.rocket) methods.push('Rocket');
+    return methods;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Checkout Profiles</h2>
           <p className="text-muted-foreground">
-            Configure checkout forms and shipping rules
+            Configure checkout forms, payment methods, and shipping rules
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
@@ -164,10 +190,10 @@ export function DeveloperCheckout() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Shop</TableHead>
-                    <TableHead>Fields</TableHead>
-                    <TableHead>Shipping Rules</TableHead>
-                    <TableHead>Free Shipping</TableHead>
+                    <TableHead>Payment Methods</TableHead>
+                    <TableHead>Shipping</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -176,36 +202,54 @@ export function DeveloperCheckout() {
                     <TableRow key={profile.id}>
                       <TableCell className="font-medium">{profile.name}</TableCell>
                       <TableCell>
+                        {profile.profile_type === 'digital' ? (
+                          <Badge variant="outline" className="bg-violet-500/10 text-violet-600 border-violet-500/20">
+                            <Zap className="h-3 w-3 mr-1" />
+                            Digital
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                            <Package className="h-3 w-3 mr-1" />
+                            Physical
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {profile.shop?.name || '-'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">{getFieldCount(profile)} fields</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {profile.shipping_rules.slice(0, 2).map((rule, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {rule.label}: ৳{rule.cost}
+                          {getActivePaymentMethods(profile).slice(0, 3).map((method, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {method}
                             </Badge>
                           ))}
-                          {profile.shipping_rules.length > 2 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{profile.shipping_rules.length - 2} more
+                          {getActivePaymentMethods(profile).length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{getActivePaymentMethods(profile).length - 3}
                             </Badge>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {profile.free_shipping_enabled ? (
+                        {profile.profile_type === 'digital' ? (
+                          <Badge variant="outline" className="text-xs">
+                            <Zap className="h-3 w-3 mr-1" />
+                            Instant
+                          </Badge>
+                        ) : profile.free_shipping_enabled ? (
                           <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                             <Truck className="h-3 w-3 mr-1" />
-                            Above ৳{profile.free_shipping_threshold}
+                            Free above ৳{profile.free_shipping_threshold}
                           </Badge>
                         ) : (
-                          <Badge variant="outline">Disabled</Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.shipping_rules.slice(0, 2).map((rule, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {rule.label}: ৳{rule.cost}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>

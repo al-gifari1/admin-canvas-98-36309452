@@ -90,6 +90,7 @@ export type Database = {
           name: string
           notes_enabled: boolean | null
           payment_methods: Json | null
+          profile_type: string | null
           shipping_rules: Json | null
           shop_id: string
           updated_at: string | null
@@ -107,6 +108,7 @@ export type Database = {
           name: string
           notes_enabled?: boolean | null
           payment_methods?: Json | null
+          profile_type?: string | null
           shipping_rules?: Json | null
           shop_id: string
           updated_at?: string | null
@@ -124,6 +126,7 @@ export type Database = {
           name?: string
           notes_enabled?: boolean | null
           payment_methods?: Json | null
+          profile_type?: string | null
           shipping_rules?: Json | null
           shop_id?: string
           updated_at?: string | null
