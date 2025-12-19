@@ -225,6 +225,105 @@ export type Database = {
           },
         ]
       }
+      media_files: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          file_path: string
+          file_size: number | null
+          file_url: string
+          folder_id: string | null
+          id: string
+          mime_type: string | null
+          name: string
+          shop_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          file_path: string
+          file_size?: number | null
+          file_url: string
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          shop_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          file_path?: string
+          file_size?: number | null
+          file_url?: string
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          shop_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "media_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_files_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_folders: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          name: string
+          parent_id: string | null
+          shop_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          shop_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          shop_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "media_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_folders_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           amount: number

@@ -6,6 +6,7 @@ import { DeveloperClients } from './developer/DeveloperClients';
 import { DeveloperLandingPages } from './developer/DeveloperLandingPages';
 import { DeveloperProducts } from './developer/DeveloperProducts';
 import { DeveloperStockInventory } from './developer/DeveloperStockInventory';
+import DeveloperGallery from './developer/DeveloperGallery';
 import { DeveloperTracking } from './developer/DeveloperTracking';
 import { DeveloperCheckout } from './developer/DeveloperCheckout';
 import { DeveloperReports } from './developer/DeveloperReports';
@@ -59,6 +60,9 @@ export default function DeveloperDashboard() {
         return <DeveloperProducts />;
       case 'stock-inventory':
         return <DeveloperStockInventory />;
+      case 'gallery':
+        return <DeveloperGallery />;
+      case 'tracking':
         return <DeveloperTracking />;
       case 'checkout':
         return <DeveloperCheckout />;

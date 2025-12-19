@@ -16,6 +16,7 @@ import {
   Plus,
   List,
   Layers,
+  ImageIcon,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -51,6 +52,7 @@ import { CreateLandingPageDialog } from './CreateLandingPageDialog';
 const menuItems = [
   { id: 'overview', title: 'Overview', icon: LayoutDashboard },
   { id: 'clients', title: 'Clients', icon: Users },
+  { id: 'gallery', title: 'Gallery', icon: ImageIcon },
   { id: 'tracking', title: 'Tracking', icon: Target },
   { id: 'checkout', title: 'Checkout', icon: CreditCard },
   { id: 'reports', title: 'Reports', icon: BarChart3 },
